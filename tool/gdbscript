@@ -1,0 +1,4 @@
+file build/main.elf
+target remote :4242
+layout asm
+layout reg

@@ -1,0 +1,31 @@
+# Object files
+*.o
+
+# Libraries
+*.lib
+*.a
+
+# Shared objects
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.out
+*.app
+
+# auto generation
+*.bin
+*.elf
+*.lst
+*.hex
+*.map
+
+# build directory
+build/
+
+# Vim generated file
+*.swp
+
+# Makefile dependency
+*.d
