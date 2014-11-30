@@ -38,7 +38,7 @@ extern "C" {
 
 
     /* Device Address */
-#define L3G42000_START 0x69 // SDO connected
+#define L3G42000_START 0xD2 // SDO connected
 #define WHO_AM_I 0x0F
 #define CTRL_REG1 0x20
 #define CTRL_REG2 0x21
@@ -68,8 +68,8 @@ extern "C" {
 
 
     void Init_GY801();
-    void I2C_Master_Trasmit(uint16_t startAddr, uint16_t offset, uint8_t buf[], uint16_t size);
-    void I2C_Master_Receive(uint16_t startAddr, uint16_t offset, uint8_t buf[], uint16_t size);
+    void I2C_Master_Trasmit(uint16_t startAddr, uint8_t buf[], uint16_t size);
+    void I2C_Master_Receive(uint16_t startAddr, uint8_t buf[], uint16_t size);
 
 
 #ifdef __cplusplus

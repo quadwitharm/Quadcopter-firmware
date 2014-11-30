@@ -7,7 +7,7 @@ void Init_GY801(){
     I2c_Handle.Instance = I2Cx;
 
     I2c_Handle.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-    I2c_Handle.Init.ClockSpeed = 400000;
+    I2c_Handle.Init.ClockSpeed = 100000;
     I2c_Handle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLED;
     I2c_Handle.Init.DutyCycle = I2C_DUTYCYCLE_2;
     I2c_Handle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLED;
@@ -21,12 +21,12 @@ void Init_GY801(){
     }
 }
 
-void I2C_Master_Trasmit(uint16_t startAddr, uint16_t offset, uint8_t buf[], uint16_t size){
+void I2C_Master_Trasmit(uint16_t startAddr, uint8_t buf[], uint16_t size){
     /* Start the transmission process */
     /* While the I2C in reception process, user can transmit data through
        "aTxBuffer" buffer */
     while(HAL_I2C_Master_Transmit_IT(&I2c_Handle,
-                (uint16_t) startAddr + offset,
+                (uint16_t) startAddr,
                 (uint8_t*)buf, size)!= HAL_OK)
     {
         /* Error_Handler() function is called when Timout error occurs.
@@ -44,12 +44,12 @@ void I2C_Master_Trasmit(uint16_t startAddr, uint16_t offset, uint8_t buf[], uint
     }
 }
 
-void I2C_Master_Receive(uint16_t startAddr, uint16_t offset, uint8_t buf[], uint16_t size){
+void I2C_Master_Receive(uint16_t startAddr, uint8_t buf[], uint16_t size){
     // TODO: Yield,Use Interrupt
     /* Put I2C peripheral in reception process */
-    while(HAL_I2C_Master_Receive_IT(&I2c_Handle,
-                (uint16_t) startAddr + offset,
-                (uint8_t *)buf, size) != HAL_OK)
+    while(HAL_I2C_Master_Receive(&I2c_Handle,
+                (uint16_t) startAddr,
+                (uint8_t *)buf, size, 100000) != HAL_OK)
     {
         /* Error_Handler() function is called when Timout error occurs.
            When Acknowledge failure ocucurs (Slave don't acknowledge it's address)
