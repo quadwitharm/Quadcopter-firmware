@@ -4,6 +4,12 @@
 
 #include "rcc.h"
 #include "uart.h"
+void printBinary(uint8_t c){
+    for(uint8_t i = 1u << 7; i != 0;i >>= 1){
+        kputc( (c & i) ? '1' : '0');
+    }
+    kputc(' ');
+}
 
 int main(void){
     HAL_Init();

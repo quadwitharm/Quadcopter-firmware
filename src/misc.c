@@ -20,6 +20,10 @@ void kputs(const char *str){
     }
 }
 
+void kputc(const char c){
+    send_byte(c);
+}
+
 void kgets(char buf[],int len){
     int i = 0;
     while(i < len - 1){

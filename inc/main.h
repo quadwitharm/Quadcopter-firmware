@@ -13,6 +13,7 @@
 // misc.c
 void assert_failed(uint8_t* file, uint32_t line);
 void kputs(const char *);
+void kputc(char);
 void kgets(char buf[],int len);
 char kgetc();
 
