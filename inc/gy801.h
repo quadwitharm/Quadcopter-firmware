@@ -1,12 +1,17 @@
 #ifndef __GY_801_H__
 #define __GY_801_H__
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include <stdbool.h>
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
+
+    bool Init_GY801();
+    bool I2C_Master_Trasmit(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
+    bool I2C_Master_Receive(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
+    void GY801_Task();
 
 #define I2Cx                             I2C1
 #define I2Cx_CLK_ENABLE()                __I2C1_CLK_ENABLE()
@@ -23,23 +28,23 @@ extern "C" {
 #define I2Cx_SDA_GPIO_PORT              GPIOB
 #define I2Cx_SDA_AF                     GPIO_AF4_I2C1
 
-    /* Definition for I2Cx's NVIC */
+        /* Definition for I2Cx's NVIC */
 #define I2Cx_EV_IRQn                    I2C1_EV_IRQn
 #define I2Cx_EV_IRQHandler              I2C1_EV_IRQHandler
 #define I2Cx_ER_IRQn                    I2C1_ER_IRQn
 #define I2Cx_ER_IRQHandler              I2C1_ER_IRQHandler
 
-    /* Size of Transmission buffer */
+        /* Size of Transmission buffer */
 #define TXBUFFERSIZE                      (COUNTOF(aTxBuffer) - 1)
-    /* Size of Reception buffer */
+        /* Size of Reception buffer */
 #define RXBUFFERSIZE                      TXBUFFERSIZE
 
 #define COUNTOF(__BUFFER__)   (sizeof(__BUFFER__) / sizeof(*(__BUFFER__)))
 
 
-    /* Device Address */
+        /* Device Address */
 #define L3G42000_START 0xD2 // SDO connected
-#define WHO_AM_I 0x0F
+#define WHO_AM_I 0x0F // 0b11010011
 #define CTRL_REG1 0x20
 #define CTRL_REG2 0x21
 #define CTRL_REG3 0x22
@@ -65,11 +70,6 @@ extern "C" {
 #define INT1_TSH_ZH 0x36
 #define INT1_TSH_ZL 0x37
 #define INT1_DURATION 0x38
-
-
-    void Init_GY801();
-    void I2C_Master_Trasmit(uint16_t startAddr, uint8_t buf[], uint16_t size);
-    void I2C_Master_Receive(uint16_t startAddr, uint8_t buf[], uint16_t size);
 
 
 #ifdef __cplusplus

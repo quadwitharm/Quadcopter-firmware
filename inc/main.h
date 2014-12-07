@@ -16,6 +16,7 @@ void kputs(const char *);
 void kputc(char);
 void kgets(char buf[],int len);
 char kgetc();
+void printBinary(uint8_t c);
 
 #ifdef __cplusplus
 }
