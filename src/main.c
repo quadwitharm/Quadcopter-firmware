@@ -2,6 +2,9 @@
 
 #include "stm32f4xx_hal.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #include "rcc.h"
 #include "uart.h"
 #include "gy801.h"
@@ -24,8 +27,11 @@ int main(void){
     HAL_GPIO_Init(GPIOG, &GPIO_G);
     HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
 
-    if(Init_GY801())
-        GY801_Task();
+
+    if(!Init_GY801()){
+        kputs("Initialze sensor task failed!");
+    }
+    vTaskStartScheduler();
 
     while(1);
 }

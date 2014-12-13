@@ -8,10 +8,18 @@ extern "C" {
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
 
-    bool Init_GY801();
+    struct Attitude{
+        uint16_t x,y,z;
+    };
+    struct L3G4200D{
+        uint8_t XH,XL,YH,YL,ZH,ZL;
+    };
+
+    bool Init_GY801(void);
     bool I2C_Master_Trasmit(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
     bool I2C_Master_Receive(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
-    void GY801_Task();
+    void GY801_RecvTask(void*);
+    void GY801_ProcessTask(void*);
 
 #define I2Cx                             I2C1
 #define I2Cx_CLK_ENABLE()                __I2C1_CLK_ENABLE()
