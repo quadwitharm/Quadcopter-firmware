@@ -8,6 +8,7 @@
 #include "rcc.h"
 #include "uart.h"
 #include "gy801.h"
+#include "motor.h"
 
 int main(void){
     HAL_Init();
@@ -28,9 +29,13 @@ int main(void){
     HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
 
 
-    if(!Init_GY801()){
-        kputs("Initialze sensor task failed!");
+//    if(!Init_GY801()){
+//        kputs("Initialze sensor task failed!");
+//    }
+    if(!Init_Motor()){
+        kputs("Initialze motor task failed!");
     }
+
     vTaskStartScheduler();
 
     while(1);
