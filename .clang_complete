@@ -1,1 +1,1 @@
--ISTM32Cube/Drivers/CMSIS/Device/ST/STM32F4xx/Include -ISTM32Cube/Drivers/CMSIS/Include -ISTM32Cube/Drivers/STM32F4xx_HAL_Driver/Inc -ISTM32Cube/Drivers/BSP/STM32F429I-Discovery -Iinc -Ifreertos/include -Ifreertos/portable/GCC/ARM_CM4F -std=c99 -DSTM32F429xx
+-ISTM32Cube/Drivers/CMSIS/Device/ST/STM32F4xx/Include -ISTM32Cube/Drivers/CMSIS/Include -ISTM32Cube/Drivers/STM32F4xx_HAL_Driver/Inc -ISTM32Cube/Drivers/BSP/STM32F429I-Discovery -Iinc -ISTM32Cube/Middlewares/Third_Party/FreeRTOS/Source/include -std=c11 -DSTM32F429xx

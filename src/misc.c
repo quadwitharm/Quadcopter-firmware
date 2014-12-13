@@ -39,3 +39,24 @@ void kgets(char buf[],int len){
 char kgetc(){
     return recv_byte();
 }
+
+void printBinary_uint8(uint8_t c){
+    for(uint8_t i = 1u << 7; i != 0;i >>= 1){
+        kputc( (c & i) ? '1' : '0');
+    }
+    kputc(' ');
+}
+
+void printBinary_uint16(uint16_t c){
+    for(uint16_t i = 1u << 15; i != 0;i >>= 1){
+        kputc( (c & i) ? '1' : '0');
+    }
+    kputc(' ');
+}
+
+void printBinary_uint32(uint32_t c){
+    for(uint32_t i = 1u << 31; i != 0;i >>= 1){
+        kputc( (c & i) ? '1' : '0');
+    }
+    kputc(' ');
+}
