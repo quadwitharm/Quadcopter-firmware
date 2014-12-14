@@ -17,6 +17,7 @@ CFLAGS += -mfpu=fpv4-sp-d16 -mfloat-abi=softfp
 # Basic configurations
 CFLAGS += -g -std=c11
 CFLAGS += -Wall
+CFLAGS += -fno-builtin
 CFLAGS += -DUSER_NAME=\"$(USER)\"
 
 # Optimizations
