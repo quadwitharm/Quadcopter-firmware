@@ -7,7 +7,7 @@
 
 #include "rcc.h"
 #include "uart.h"
-#include "gy801.h"
+#include "sensor/sensor.h"
 #include "motor.h"
 
 int main(void){

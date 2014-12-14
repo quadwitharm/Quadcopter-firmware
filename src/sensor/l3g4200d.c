@@ -1,4 +1,4 @@
-#include "l3g4200d.h"
+#include "sensor/l3g4200d.h"
 #include "main.h"
 
 #include "task.h"

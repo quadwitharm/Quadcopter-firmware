@@ -1,4 +1,4 @@
-#include "sensor.h"
+#include "sensor/sensor.h"
 
 struct Attitude xAttitude;
 struct Attitude vAttitude;
