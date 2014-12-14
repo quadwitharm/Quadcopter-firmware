@@ -14,17 +14,46 @@ void assert_failed(uint8_t* file, uint32_t line){
 
 #endif
 
+/**
+ * @brief  k* I/O is for debugging, not interrupt based.
+ */
 void kputs(const char *str){
+    while(*str){
+        UART_send((uint8_t *)str++,1);
+    }
+}
+void kputc(const char c){
+    UART_send((uint8_t *)&c,1);
+}
+void kgets(char buf[],int len){
+    int i = 0;
+    while(i < len - 1){
+        UART_recv((uint8_t *)buf+i,1);
+        ++i;
+        if(buf[i] == '\n'){
+            break;
+        }
+    }
+    buf[i] = '\0';
+}
+char kgetc(){
+    char msg;
+    UART_recv((uint8_t *)&msg,1);
+    return msg;
+}
+
+/**
+ * @brief  Interrupt based I/O
+ */
+void puts(const char *str){
     while(*str){
         send_byte(*str++);
     }
 }
-
-void kputc(const char c){
+void putc(const char c){
     send_byte(c);
 }
-
-void kgets(char buf[],int len){
+void gets(char buf[],int len){
     int i = 0;
     while(i < len - 1){
         buf[i] = recv_byte();
@@ -35,11 +64,14 @@ void kgets(char buf[],int len){
     }
     buf[i] = '\0';
 }
-
-char kgetc(){
+char getc(){
     return recv_byte();
 }
 
+
+/**
+ * @brief  Print the binary representation for 8, 16, 32 bit data
+ */
 void printBinary_uint8(uint8_t c){
     for(uint8_t i = 1u << 7; i != 0;i >>= 1){
         kputc( (c & i) ? '1' : '0');
