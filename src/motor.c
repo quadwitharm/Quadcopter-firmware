@@ -1,10 +1,27 @@
 #include "motor.h"
 
+#define GPIO_PIN_CHANNEL1 GPIO_PIN_0  // PA0
+#define GPIO_PIN_CHANNEL2 GPIO_PIN_3  // PB3
+#define GPIO_PIN_CHANNEL3 GPIO_PIN_10 // PB10
+#define GPIO_PIN_CHANNEL4 GPIO_PIN_3  // PA3
+#define PERIOD   1500000
+#define MAX_PULSE 180000
+#define MIN_PULSE  90000
+#define PULSE_RANGE (MAX_PULSE - MIN_PULSE)
+
+#ifdef USE_OPENDRAIN
+    #define TIM_GPIO_OTYPE GPIO_MODE_AF_OD;
+    #define PULSE(Speed) (PERIOD - MIN_PULSE - (Speed) * PULSE_RANGE)
+#else
+    #define TIM_GPIO_OTYPE GPIO_MODE_AF_PP;
+    #define PULSE(Speed) ((Speed) * PULSE_RANGE + MIN_PULSE)
+#endif
+
+
 static TIM_HandleTypeDef TIM2_Handle;
 static TIM_OC_InitTypeDef OCConfig;
 static TIM_ClockConfigTypeDef ClockSourceConfig;
-
-static xTaskHandle motorTaskHandle;
+static void MotorTask(void *);
 
 xSemaphoreHandle MotorSem;
 struct MotorSpeed MotorSpeed = {
@@ -19,7 +36,7 @@ bool Init_Motor(){
 
     TIM2_Handle.Instance = TIM2;
     TIM2_Handle.Init.Prescaler = 0;
-    TIM2_Handle.Init.Period = 1500000;
+    TIM2_Handle.Init.Period = PERIOD;
     TIM2_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     TIM2_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
 
@@ -38,7 +55,7 @@ bool Init_Motor(){
     OCConfig.OCFastMode = TIM_OCFAST_DISABLE;
 
     /* Initial Value to start ESC */
-    OCConfig.Pulse = 90000;
+    OCConfig.Pulse = PULSE(0);
     status = HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_1);
     status = HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_2);
     status = HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_3);
@@ -57,18 +74,50 @@ bool Init_Motor(){
             512,
             NULL,
             tskIDLE_PRIORITY + 2,
-            &motorTaskHandle);
+            NULL);
     MotorSem = xSemaphoreCreateMutex();
 
     kputs("Initialized TIM\r\n");
     return true;
 }
 
-#define GPIO_PIN_CHANNEL1 GPIO_PIN_0  // PA0
-#define GPIO_PIN_CHANNEL2 GPIO_PIN_3  // PB3
-#define GPIO_PIN_CHANNEL3 GPIO_PIN_10 // PB10
-#define GPIO_PIN_CHANNEL4 GPIO_PIN_3  // PA3
-;
+void lockMotorMutex(){
+    xSemaphoreTake(MotorSem, portMAX_DELAY);
+}
+
+void unlockMotorMutex(){
+    xSemaphoreGive(MotorSem);
+}
+
+static void MotorTask(void *arg){
+    /* Wait motor to be ready */
+    for(int i = 0 ; i < 100000000;++i);
+    while(1){
+        /* For ESC: 90000 ~ 180000 */
+
+        lockMotorMutex();
+
+        OCConfig.Pulse = PULSE(MotorSpeed.motor1);
+        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_1);
+        OCConfig.Pulse = PULSE(MotorSpeed.motor2);
+        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_2);
+        OCConfig.Pulse = PULSE(MotorSpeed.motor3);
+        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_3);
+        OCConfig.Pulse = PULSE(MotorSpeed.motor4);
+        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_4);
+
+        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_1);
+        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_2);
+        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_3);
+        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_4);
+
+        unlockMotorMutex();
+
+        /* TODO: Use timer to delay */
+        for(int i = 0 ; i < 1000000;++i);
+    }
+}
+
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
     GPIO_InitTypeDef   GPIO_InitStruct;
 
@@ -78,7 +127,7 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
     __GPIOA_CLK_ENABLE();
     __GPIOB_CLK_ENABLE();
 
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Mode = TIM_GPIO_OTYPE;
     GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
 
@@ -88,32 +137,4 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
     /* MEMS Sensor conflict PA1, PA2 on STM32F429I-Discovery */
     GPIO_InitStruct.Pin = GPIO_PIN_CHANNEL2 | GPIO_PIN_CHANNEL3;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-}
-
-void MotorTask(void *arg){
-    /* Wait motor to be ready */
-    for(int i = 0 ; i < 100000000;++i);
-    while(1){
-        /* For ESC: 90000 ~ 180000 */
-
-        xSemaphoreTake(MotorSem, portMAX_DELAY);
-
-        OCConfig.Pulse = MotorSpeed.motor1 * 90000 + 90000;
-        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_1);
-        OCConfig.Pulse = MotorSpeed.motor1 * 90000 + 90000;
-        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_2);
-        OCConfig.Pulse = MotorSpeed.motor1 * 90000 + 90000;
-        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_3);
-        OCConfig.Pulse = MotorSpeed.motor1 * 90000 + 90000;
-        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_4);
-
-        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_1);
-        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_2);
-        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_3);
-        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_4);
-
-        xSemaphoreGive(MotorSem);
-
-        for(int i = 0 ; i < 1000000;++i);
-    }
 }

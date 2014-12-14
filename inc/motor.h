@@ -9,7 +9,9 @@
 #include "stm32f4xx_hal_tim.h"
 
 bool Init_Motor();
-void MotorTask(void *arg);
+
+inline void lockMotorMutex();
+inline void unlockMotorMutex();
 
 struct MotorSpeed{
     float motor1;
@@ -19,6 +21,5 @@ struct MotorSpeed{
 };
 
 extern struct MotorSpeed MotorSpeed;
-extern xSemaphoreHandle MotorSem;
 
 #endif
