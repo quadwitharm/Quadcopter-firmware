@@ -1,54 +1,25 @@
-#ifndef __GY_801_H__
-#define __GY_801_H__
+#ifndef __L3G4200D_H__
+#define __L3G4200D_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_i2c.h"
 #include "main.h"
-
     struct L3G4200D{
-        uint8_t XH,XL,YH,YL,ZH,ZL;
+        uint8_t XH;
+        uint8_t XL;
+        uint8_t YH;
+        uint8_t YL;
+        uint8_t ZH;
+        uint8_t ZL;
     };
 
-    bool Init_GY801(void);
-    bool I2C_Master_Trasmit(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
-    bool I2C_Master_Receive(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
-    void GY801_RecvTask(void*);
-    void GY801_ProcessTask(void*);
+    void L3G4200D_Init();
+    void L3G4200D_Recv(void*);
+    void L3G4200D_Process(void*);
 
-#define I2Cx                             I2C1
-#define I2Cx_CLK_ENABLE()                __I2C1_CLK_ENABLE()
-#define I2Cx_SDA_GPIO_CLK_ENABLE()       __GPIOB_CLK_ENABLE()
-#define I2Cx_SCL_GPIO_CLK_ENABLE()       __GPIOB_CLK_ENABLE()
-
-#define I2Cx_FORCE_RESET()               __I2C1_FORCE_RESET()
-#define I2Cx_RELEASE_RESET()             __I2C1_RELEASE_RESET()
-
-#define I2Cx_SCL_PIN                    GPIO_PIN_6
-#define I2Cx_SCL_GPIO_PORT              GPIOB
-#define I2Cx_SCL_AF                     GPIO_AF4_I2C1
-#define I2Cx_SDA_PIN                    GPIO_PIN_7
-#define I2Cx_SDA_GPIO_PORT              GPIOB
-#define I2Cx_SDA_AF                     GPIO_AF4_I2C1
-
-        /* Definition for I2Cx's NVIC */
-#define I2Cx_EV_IRQn                    I2C1_EV_IRQn
-#define I2Cx_EV_IRQHandler              I2C1_EV_IRQHandler
-#define I2Cx_ER_IRQn                    I2C1_ER_IRQn
-#define I2Cx_ER_IRQHandler              I2C1_ER_IRQHandler
-
-        /* Size of Transmission buffer */
-#define TXBUFFERSIZE                      (COUNTOF(aTxBuffer) - 1)
-        /* Size of Reception buffer */
-#define RXBUFFERSIZE                      TXBUFFERSIZE
-
-#define COUNTOF(__BUFFER__)   (sizeof(__BUFFER__) / sizeof(*(__BUFFER__)))
-
-
-        /* Device Address */
-#define L3G42000_START 0xD2 // SDO connected
+    /* Device Address */
+#define L3G4200D_START 0xD2 // SDO connected
 #define WHO_AM_I 0x0F // 0b11010011
 #define CTRL_REG1 0x20
 #define CTRL_REG2 0x21

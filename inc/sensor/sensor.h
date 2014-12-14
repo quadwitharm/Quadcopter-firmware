@@ -2,7 +2,8 @@
 #define __SENSOR_H__
 
 #include "main.h"
-#include "l3g4200d.h"
+#include "sensor/i2c.h"
+#include "sensor/l3g4200d.h"
 
 struct Attitude{
     float row;
@@ -17,6 +18,7 @@ struct Vector3D{
 };
 
 bool InitSensorPeriph();
+bool InitSensorTask();
 void SensorTask(void *);
 
 #endif

@@ -29,7 +29,7 @@ int main(void){
     HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
 
 
-    if(!Init_GY801()){
+    if(!InitSensorPeriph() || !InitSensorTask()){
         kputs("Initialze sensor task failed!");
     }
     if(!Init_Motor()){
