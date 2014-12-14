@@ -9,6 +9,7 @@
  extern "C" {
 #endif
 
+#include <stdbool.h>
 #include "stm32f429i_discovery.h"
 #include "FreeRTOS.h"
 

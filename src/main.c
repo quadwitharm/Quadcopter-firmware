@@ -7,7 +7,7 @@
 
 #include "rcc.h"
 #include "uart.h"
-#include "gy801.h"
+#include "sensor.h"
 
 int main(void){
     HAL_Init();
