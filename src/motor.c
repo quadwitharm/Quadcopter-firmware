@@ -6,6 +6,14 @@ static TIM_ClockConfigTypeDef ClockSourceConfig;
 
 static xTaskHandle motorTaskHandle;
 
+xSemaphoreHandle MotorSem;
+struct MotorSpeed MotorSpeed = {
+    .motor1 = 0.5f,
+    .motor2 = 0.5f,
+    .motor3 = 0.5f,
+    .motor4 = 0.5f,
+};
+
 bool Init_Motor(){
     HAL_StatusTypeDef status = HAL_OK;
 
@@ -29,6 +37,7 @@ bool Init_Motor(){
     OCConfig.OCPolarity = TIM_OCPOLARITY_HIGH;
     OCConfig.OCFastMode = TIM_OCFAST_DISABLE;
 
+    /* Initial Value to start ESC */
     OCConfig.Pulse = 90000;
     status = HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_1);
     status = HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_2);
@@ -49,6 +58,7 @@ bool Init_Motor(){
             NULL,
             tskIDLE_PRIORITY + 2,
             &motorTaskHandle);
+    MotorSem = xSemaphoreCreateMutex();
 
     kputs("Initialized TIM\r\n");
     return true;
@@ -82,27 +92,27 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
 
 void MotorTask(void *arg){
     /* Wait motor to be ready */
-//    for(int i = 0 ; i < 100000000;++i);
+    for(int i = 0 ; i < 100000000;++i);
     while(1){
-//        /* For Electric Speed Controller: 90000 ~ 180000*/
-//        OCConfig.Pulse += 135000;
+        /* For ESC: 90000 ~ 180000 */
 
-        OCConfig.Pulse += 10000;
-        if(OCConfig.Pulse > 1500000){
-            OCConfig.Pulse = 0;
-        }
+        xSemaphoreTake(MotorSem, portMAX_DELAY);
+
+        OCConfig.Pulse = MotorSpeed.motor1 * 90000 + 90000;
         HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_1);
+        OCConfig.Pulse = MotorSpeed.motor1 * 90000 + 90000;
         HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_2);
+        OCConfig.Pulse = MotorSpeed.motor1 * 90000 + 90000;
         HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_3);
+        OCConfig.Pulse = MotorSpeed.motor1 * 90000 + 90000;
         HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_4);
 
         HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_1);
-        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_2); // Not working
-        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_3); // Not working
+        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_2);
+        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_3);
         HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_4);
 
-        printBinary_uint32(OCConfig.Pulse);
-        kputs("\r\n");
+        xSemaphoreGive(MotorSem);
 
         for(int i = 0 ; i < 1000000;++i);
     }
