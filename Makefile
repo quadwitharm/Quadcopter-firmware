@@ -18,7 +18,6 @@ SRCDIR += \
 
 INCDIR += \
     inc \
-    inc/sensor \
 
 SRC += \
     $(wildcard $(addsuffix /*.c,$(SRCDIR))) \

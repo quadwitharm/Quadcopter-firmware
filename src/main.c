@@ -7,7 +7,8 @@
 
 #include "rcc.h"
 #include "uart.h"
-#include "sensor.h"
+#include "sensor/sensor.h"
+#include "motor.h"
 
 int main(void){
     HAL_Init();
@@ -31,8 +32,10 @@ int main(void){
     if(!Init_GY801()){
         kputs("Initialze sensor task failed!");
     }
+    if(!Init_Motor()){
+        kputs("Initialze motor task failed!");
+    }
     vTaskStartScheduler();
 
     while(1);
 }
-
