@@ -4,7 +4,16 @@ UART_HandleTypeDef UartHandle;
 __IO ITStatus UartReady = RESET;
 
 HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate){
-    UartHandle = (UART_HandleTypeDef) { .Instance = uart, .Init = { .BaudRate = BaudRate, .WordLength = UART_WORDLENGTH_8B, .StopBits = UART_STOPBITS_1,  .Parity = UART_PARITY_NONE, .HwFlowCtl = UART_HWCONTROL_NONE, .Mode = UART_MODE_TX_RX } };
+    UartHandle = (UART_HandleTypeDef) {
+        .Instance = uart,
+        .Init = { .BaudRate = BaudRate,
+            .WordLength = UART_WORDLENGTH_8B,
+            .StopBits = UART_STOPBITS_1,
+            .Parity = UART_PARITY_NONE,
+            .HwFlowCtl = UART_HWCONTROL_NONE,
+            .Mode = UART_MODE_TX_RX
+        }
+    };
     return HAL_UART_Init(&UartHandle);
 }
 

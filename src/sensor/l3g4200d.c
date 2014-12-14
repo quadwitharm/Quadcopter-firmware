@@ -1,4 +1,4 @@
-#include "gy801.h"
+#include "sensor/l3g4200d.h"
 #include "main.h"
 
 #include "task.h"
@@ -11,7 +11,6 @@ static xSemaphoreHandle attitudeLock;
 
 static I2C_HandleTypeDef I2c_Handle;
 
-struct Attitude Attitude = {0, 0, 0};
 struct L3G4200D L3G4200D;
 
 /**
@@ -74,6 +73,7 @@ bool I2C_Master_Transmit(uint16_t deviceAddr, uint8_t buf[], uint16_t size){
         }
     }
     while (HAL_I2C_GetState(&I2c_Handle) != HAL_I2C_STATE_READY) {
+        taskYIELD();
     }
     return true;
 }
@@ -88,19 +88,14 @@ bool I2C_Master_Receive(uint16_t deviceAddr, uint8_t buf[], uint16_t size){
         }
     }
     while (HAL_I2C_GetState(&I2c_Handle) != HAL_I2C_STATE_READY) {
+        taskYIELD();
     }
     return true;
 }
 
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *I2cHandle){
-    if(I2cHandle == &I2c_Handle){
-        vTaskResume(recvTaskHandle);
-    }
 }
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *I2cHandle){
-    if(I2cHandle == &I2c_Handle){
-        vTaskResume(recvTaskHandle);
-    }
 }
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *I2cHandle){
     kputs("I2C error!\r\n");

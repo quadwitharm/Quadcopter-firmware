@@ -6,10 +6,8 @@ extern "C" {
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
+#include "main.h"
 
-    struct Attitude{
-        uint16_t x,y,z;
-    };
     struct L3G4200D{
         uint8_t XH,XL,YH,YL,ZH,ZL;
     };

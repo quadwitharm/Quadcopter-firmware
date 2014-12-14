@@ -14,6 +14,7 @@ TARGET = $(PROJECT)
 SRCDIR += \
     port \
     src \
+    src/sensor \
 
 INCDIR += \
     inc \
