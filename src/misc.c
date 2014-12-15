@@ -92,3 +92,23 @@ void printBinary_uint32(uint32_t c){
     }
     kputc(' ');
 }
+
+/* TODO: use external buffer */
+char *itoa(int num, unsigned int base){
+    static char buf[32]={0};
+    int i;
+    if(num==0){
+        buf[30]='0';
+        return &buf[30];
+    }
+    int negative=(num<0);
+    if(negative) num=-num;
+    for(i=30; i>=0&&num; --i, num/=base)
+        buf[i] = "0123456789ABCDEF"[num % base];
+    if(negative){
+        buf[i]='-';
+        --i;
+    }
+    return buf+i+1;
+}
+
