@@ -17,6 +17,14 @@ struct Vector3D{
     float z;
 };
 
+extern struct Attitude xAttitude;
+extern struct Attitude vAttitude;
+extern struct Attitude aAttitude;
+
+extern struct Vector3D position;
+extern struct Vector3D velocity;
+extern struct Vector3D acceleration;
+
 bool InitSensorPeriph();
 bool InitSensorTask();
 void SensorTask(void *);
