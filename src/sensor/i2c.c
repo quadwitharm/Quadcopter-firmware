@@ -102,4 +102,5 @@ bool I2C_Init(){
     if(HAL_I2C_Init(&I2c_Handle) != HAL_OK){
         return false;
     }
+    return true;
 }

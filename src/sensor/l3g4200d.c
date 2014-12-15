@@ -4,7 +4,7 @@
 #include "task.h"
 #include "semphr.h"
 
-static xSemaphoreHandle attitudeLock;
+static xSemaphoreHandle L3G4200D_Lock;
 struct L3G4200D L3G4200D;
 
 void Write_L3G4200D(uint8_t Register, uint8_t content){
@@ -22,25 +22,29 @@ void READ_L3G4200D(uint8_t addr,uint8_t buf[]){
 };
 
 void L3G4200D_Init(){
-    attitudeLock = xSemaphoreCreateMutex();
+    L3G4200D_Lock = xSemaphoreCreateMutex();
 
     kputs("Setting Control Register for L3G4200D\r\n");
-    Write_L3G4200D(CTRL_REG1, 0b01001111);
+    /* ODR 800Hz, Cut-off: 30 */
+    Write_L3G4200D(CTRL_REG1, 0b11001111);
+    /* Block data update, 250dps (0.00875 * value degree per second) */
     Write_L3G4200D(CTRL_REG4, 0b10000000);
+    /* Enable FIFO & reboot memory content */
     Write_L3G4200D(CTRL_REG5, 0b11000000);
+    /* Stream mode, Watermark level: 16 */
     Write_L3G4200D(FIFO_CTRL_REG, 0b01010000);
     kputs("Control Register for L3G4200D had been set\r\n");
 }
 
 void L3G4200D_Recv(void *arg){
     while(1){
-        xSemaphoreTake( attitudeLock, ( portTickType ) portMAX_DELAY );
+        xSemaphoreTake( L3G4200D_Lock, ( portTickType ) portMAX_DELAY );
         uint8_t FIFO_STATUS;
         READ_L3G4200D(FIFO_SRC_REG, &FIFO_STATUS);
 
         /* Data not available yet */
         if(FIFO_STATUS & 0b00100000){
-            xSemaphoreGive( attitudeLock );
+            xSemaphoreGive( L3G4200D_Lock );
             continue;
         }
 
@@ -53,11 +57,11 @@ void L3G4200D_Recv(void *arg){
         READ_L3G4200D(OUT_Z_H, &L3G4200D.ZH);
         READ_L3G4200D(OUT_Z_L, &L3G4200D.ZL);
 
-        xSemaphoreGive( attitudeLock );
+        xSemaphoreGive( L3G4200D_Lock );
     }
 }
 void L3G4200D_Process(void *arg){
-    xSemaphoreTake( attitudeLock, ( portTickType ) portMAX_DELAY );
+    xSemaphoreTake( L3G4200D_Lock, ( portTickType ) portMAX_DELAY );
 
     kputs("X: \r\n");
     printBinary_uint8(L3G4200D.XH);
@@ -77,5 +81,5 @@ void L3G4200D_Process(void *arg){
     printBinary_uint8(L3G4200D.ZL);
     kputs("\r\n");
 
-    xSemaphoreGive( attitudeLock );
+    xSemaphoreGive( L3G4200D_Lock );
 }

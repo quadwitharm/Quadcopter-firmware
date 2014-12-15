@@ -6,7 +6,7 @@
 #include "stm32f4xx_hal_i2c.h"
 
 bool I2C_Init();
-bool I2C_Master_Trasmit(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
+bool I2C_Master_Transmit(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
 bool I2C_Master_Receive(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
 
 #define I2Cx                             I2C1
