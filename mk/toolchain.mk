@@ -12,7 +12,7 @@ GDB = $(CROSS_COMPILE)gdb
 CPU = cortex-m4
 CFLAGS += -mcpu=$(CPU) -march=armv7e-m -mtune=cortex-m4
 CFLAGS += -mlittle-endian -mthumb
-CFLAGS += -mfpu=fpv4-sp-d16 -mfloat-abi=softfp
+CFLAGS += -mfpu=fpv4-sp-d16 -mfloat-abi=hard
 
 # Basic configurations
 CFLAGS += -g -std=c11
