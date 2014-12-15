@@ -16,6 +16,7 @@ struct Vector3D acceleration;
 
 void ProcessTask(void *arg);
 void SensorTask(void *arg);
+void TestOutput(void *arg);
 
 bool InitSensorPeriph(){
     kputs("I2C: Initialing ...\r\n");
@@ -44,6 +45,12 @@ bool InitSensorTask(){
             NULL,
             tskIDLE_PRIORITY + 2,
             &processTaskHandle);
+    ret = xTaskCreate(TestOutput,
+            (signed portCHAR *)"Test",
+            512,
+            NULL,
+            tskIDLE_PRIORITY + 2,
+            NULL);
     if(ret != pdPASS)return false;
 
     return true;
@@ -58,5 +65,36 @@ void SensorTask(void *arg){
 void ProcessTask(void *arg){
     while(1){
         L3G4200D_Process(arg);
+    }
+}
+
+void printFloat(float a){
+    if(a < 0){ kputs("-"); a = -a;}else{kputs(" ");}
+    kputs(itoa(a, 10));
+    kputs(".");
+    kputs( itoa( (100000 * a - 100000 * (int)a ) ,10) );
+}
+
+void TestOutput(void *arg){
+    while(1){
+        kputs("vRow:   ");
+        printFloat(vAttitude.row);
+        kputs("\r\n");
+        kputs("vPitch: ");
+        printFloat(vAttitude.pitch);
+        kputs("\r\n");
+        kputs("vYaw:   ");
+        printFloat(vAttitude.yaw);
+        kputs("\r\n");
+
+        kputs("Row:   ");
+        printFloat(xAttitude.row);
+        kputs("\r\n");
+        kputs("Pitch: ");
+        printFloat(xAttitude.pitch);
+        kputs("\r\n");
+        kputs("Yaw:   ");
+        printFloat(xAttitude.yaw);
+        kputs("\r\n");
     }
 }
