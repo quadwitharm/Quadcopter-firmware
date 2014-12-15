@@ -14,7 +14,6 @@ bool I2C_Master_Transmit(uint16_t deviceAddr, uint8_t buf[], uint16_t size){
         }
     }
     while (HAL_I2C_GetState(&I2c_Handle) != HAL_I2C_STATE_READY) {
-        taskYIELD();
     }
     return true;
 }
@@ -29,7 +28,6 @@ bool I2C_Master_Receive(uint16_t deviceAddr, uint8_t buf[], uint16_t size){
         }
     }
     while (HAL_I2C_GetState(&I2c_Handle) != HAL_I2C_STATE_READY) {
-        taskYIELD();
     }
     return true;
 }
