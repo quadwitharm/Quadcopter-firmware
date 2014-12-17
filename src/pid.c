@@ -7,11 +7,12 @@ float runPID(pid_context_t * p,float setpoint,float input){
     float deriv;
 
     error = setpoint - input;
-    deriv = error - p->prev_error;
+    //use input instead of error to avoid derivative kick
+    deriv = (input - p->prev_in) / p->dt;
 
     p->integral += error * p->dt;
 
-    p->prev_error = error;
+    p->prev_in = input;
     return error*p->kp + p->integral*p->ki + deriv*p->kd;
 }
 

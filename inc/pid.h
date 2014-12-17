@@ -6,7 +6,7 @@
 typedef struct pid_context_t{
     float dt;
     float kp,ki,kd;
-    float prev_error;
+    float prev_in;
     float integral;
 } pid_context_t;
 
