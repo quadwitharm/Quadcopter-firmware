@@ -1,3 +1,4 @@
+#include "main.h"
 #include "uart.h"
 #ifdef  USE_FULL_ASSERT
 /**
@@ -91,6 +92,13 @@ void printBinary_uint32(uint32_t c){
         kputc( (c & i) ? '1' : '0');
     }
     kputc(' ');
+}
+
+void printFloat(float a){
+    if(a < 0){ kputs("-"); a = -a;}else{kputs(" ");}
+    kputs(itoa(a, 10));
+    kputs(".");
+    kputs( itoa( (100000 * a - 100000 * (int)a ) ,10) );
 }
 
 /* TODO: use external buffer */
