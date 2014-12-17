@@ -80,6 +80,32 @@ void L3G4200D_Recv(void *arg){
         xSemaphoreGive( L3G4200D_Lock );
     }
 }
+
+float Sqrt(float in){
+    float left = 0,right = in;
+    while(1){
+        float middle = (left + right) / 2;
+        if(middle * middle > in)right = middle;
+        else left = middle;
+        if(right - left < 0.001)return middle;
+    }
+}
+
+const float Ex = 64;
+float R  = 32;
+float La = 0;
+float Kalman_Filter(float current){
+    float err = Sqrt(Ex * Ex + R * R);
+    float Kg = Sqrt(err * err / (err * err + Ex * Ex));
+    float filtered = La + Kg * (current - La);
+    R = Sqrt((1-Kg) * err * err);
+    La = current;
+    return filtered;
+}
+
+float fd = 0;
+float nd = 0;
+
 void L3G4200D_Process(void *arg){
     xSemaphoreTake( L3G4200D_Lock, ( portTickType ) portMAX_DELAY );
 
@@ -90,9 +116,13 @@ void L3G4200D_Process(void *arg){
     }
     dataAvailable = false;
 
-    L3G4200D.uint8.XL = L3G4200D.uint8.XL & 0b11111100;
-    L3G4200D.uint8.YL = L3G4200D.uint8.YL & 0b11111100;
-    L3G4200D.uint8.ZL = L3G4200D.uint8.ZL & 0b11111100;
+    L3G4200D.uint8.XL = (L3G4200D.uint8.XL & 0b11110000);
+    L3G4200D.uint8.YL = (L3G4200D.uint8.YL & 0b11110000);
+    L3G4200D.uint8.ZL = (L3G4200D.uint8.ZL & 0b11110000);
+
+    L3G4200D.int16.X -= 31;
+    L3G4200D.int16.Y -= 15;
+    L3G4200D.int16.Z -= 4;
 
     vAttitude.row   = L3G4200D.int16.X;// * 0.00875;
     vAttitude.pitch = L3G4200D.int16.Y;// * 0.00875;
@@ -102,11 +132,15 @@ void L3G4200D_Process(void *arg){
     xAttitude.pitch += vAttitude.pitch * .00125;
     xAttitude.yaw   += vAttitude.yaw * .00125;
 
-    kputs(itoa(xAttitude.row, 10));
+    float filter = Kalman_Filter(L3G4200D.int16.X);
+    float not_filter = L3G4200D.int16.X;// * 0.00875;
+
+//    fd += filter * .00125;
+//    nd += not_filter * .00125;
+
+    kputs(itoa(not_filter, 10));
     kputs(",");
-    kputs(itoa(xAttitude.pitch, 10));
-    kputs(",");
-    kputs(itoa(xAttitude.yaw, 10));
+    kputs(itoa(filter, 10));
     kputs("\r\n");
 
     xSemaphoreGive( L3G4200D_Lock );

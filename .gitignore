@@ -29,3 +29,6 @@ build/
 
 # Makefile dependency
 *.d
+
+# UART_PLOT
+setting.xml
