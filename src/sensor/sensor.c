@@ -68,33 +68,7 @@ void ProcessTask(void *arg){
     }
 }
 
-void printFloat(float a){
-    if(a < 0){ kputs("-"); a = -a;}else{kputs(" ");}
-    kputs(itoa(a, 10));
-    kputs(".");
-    kputs( itoa( (100000 * a - 100000 * (int)a ) ,10) );
-}
-
 void TestOutput(void *arg){
     while(1){
-        kputs("vRow:   ");
-        printFloat(vAttitude.row);
-        kputs("\r\n");
-        kputs("vPitch: ");
-        printFloat(vAttitude.pitch);
-        kputs("\r\n");
-        kputs("vYaw:   ");
-        printFloat(vAttitude.yaw);
-        kputs("\r\n");
-
-        kputs("Row:   ");
-        printFloat(xAttitude.row);
-        kputs("\r\n");
-        kputs("Pitch: ");
-        printFloat(xAttitude.pitch);
-        kputs("\r\n");
-        kputs("Yaw:   ");
-        printFloat(xAttitude.yaw);
-        kputs("\r\n");
     }
 }

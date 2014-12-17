@@ -36,6 +36,9 @@ void L3G4200D_Init(){
     /* Enable FIFO & reboot memory content */
     Write_L3G4200D(CTRL_REG5, 0b11000000);
     /* Stream mode, Watermark level: 16 */
+
+
+
     Write_L3G4200D(FIFO_CTRL_REG, 0b01010000);
 
     Write_L3G4200D(FIFO_CTRL_REG, 0b01010000);
@@ -51,6 +54,16 @@ void L3G4200D_Recv(void *arg){
         /* Data not available yet */
         if(FIFO_STATUS & 0b00100000){
             xSemaphoreGive( L3G4200D_Lock );
+            continue;
+        }
+        if(dataAvailable){
+            xSemaphoreGive( L3G4200D_Lock );
+            continue;
+        }
+        if(FIFO_STATUS & 0b00100000){
+            kputs("Overrun, fetch too slow!!\r\n");
+            xSemaphoreGive( L3G4200D_Lock );
+            while(1);
             continue;
         }
 
@@ -88,6 +101,13 @@ void L3G4200D_Process(void *arg){
     xAttitude.row   += vAttitude.row * .00125;
     xAttitude.pitch += vAttitude.pitch * .00125;
     xAttitude.yaw   += vAttitude.yaw * .00125;
+
+    kputs(itoa(xAttitude.row, 10));
+    kputs(",");
+    kputs(itoa(xAttitude.pitch, 10));
+    kputs(",");
+    kputs(itoa(xAttitude.yaw, 10));
+    kputs("\r\n");
 
     xSemaphoreGive( L3G4200D_Lock );
 }
