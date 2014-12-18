@@ -11,7 +11,7 @@
 
 #ifdef USE_OPENDRAIN
     #define TIM_GPIO_OTYPE GPIO_MODE_AF_OD;
-    #define PULSE(Speed) (PERIOD - MIN_PULSE - (Speed) * PULSE_RANGE)
+    #define PULSE(Speed) ((Speed) * PULSE_RANGE + MIN_PULSE)
 #else
     #define TIM_GPIO_OTYPE GPIO_MODE_AF_PP;
     #define PULSE(Speed) ((Speed) * PULSE_RANGE + MIN_PULSE)

@@ -1,4 +1,4 @@
-Quantum Air flight based on STM32F429-Discovery evaluation board
+Quadcopter based on STM32F429-Discovery evaluation board
 ==============
 
 
