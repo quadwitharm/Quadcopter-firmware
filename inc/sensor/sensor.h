@@ -3,7 +3,6 @@
 
 #include "main.h"
 #include "sensor/i2c.h"
-#include "sensor/l3g4200d.h"
 
 struct Attitude{
     float row;

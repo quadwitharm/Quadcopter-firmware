@@ -1,4 +1,6 @@
 #include "sensor/sensor.h"
+#include "sensor/l3g4200d.h"
+#include "sensor/adxl345.h"
 
 #include "task.h"
 
