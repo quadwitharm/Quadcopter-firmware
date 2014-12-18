@@ -21,13 +21,12 @@ int main(void){
 
     __GPIOG_CLK_ENABLE();
     GPIO_InitTypeDef GPIO_G;
-    GPIO_G.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_G.Pull = GPIO_PULLUP;
-    GPIO_G.Pin = GPIO_PIN_13;
+    GPIO_G.Mode = GPIO_MODE_OUTPUT_OD;
+    GPIO_G.Pull = GPIO_NOPULL;
+    GPIO_G.Pin = GPIO_PIN_9;
     GPIO_G.Speed = GPIO_SPEED_HIGH;
     HAL_GPIO_Init(GPIOG, &GPIO_G);
-    HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
-
+    HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_9);
 
     if(!InitSensorPeriph() || !InitSensorTask()){
         kputs("Initialze sensor task failed!");

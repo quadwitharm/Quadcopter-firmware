@@ -27,6 +27,7 @@ bool InitSensorPeriph(){
 
     /* Initialize sensors on GY-801 */
     L3G4200D_Init();
+    ADXL345_Init();
 
     return true;
 }
@@ -61,12 +62,14 @@ bool InitSensorTask(){
 void SensorTask(void *arg){
     while(1){
         L3G4200D_Recv(arg);
+	ADXL345_Recv(arg);
     }
 }
 
 void ProcessTask(void *arg){
     while(1){
         L3G4200D_Process(arg);
+	ADXL345_Process(arg);
     }
 }
 
@@ -79,6 +82,7 @@ void printFloat(float a){
 
 void TestOutput(void *arg){
     while(1){
+#if 0
         kputs("vRow:   ");
         printFloat(vAttitude.row);
         kputs("\r\n");
@@ -98,5 +102,16 @@ void TestOutput(void *arg){
         kputs("Yaw:   ");
         printFloat(xAttitude.yaw);
         kputs("\r\n");
+
+        kputs("Row:   ");
+        printFloat(aAttitude.row);
+        kputs("\r\n");
+        kputs("Pitch: ");
+        printFloat(aAttitude.pitch);
+        kputs("\r\n");
+        kputs("Yaw:   ");
+        printFloat(aAttitude.yaw);
+        kputs("\r\n");
+#endif
     }
 }
