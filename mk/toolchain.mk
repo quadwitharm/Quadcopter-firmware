@@ -1,6 +1,7 @@
 # Toolchain configurations
 CROSS_COMPILE ?= arm-none-eabi-
 CC = $(CROSS_COMPILE)gcc
+AR = $(CROSS_COMPILE)ar
 CXX = $(CROSS_COMPILE)g++
 LD = $(CROSS_COMPILE)ld
 OBJCOPY = $(CROSS_COMPILE)objcopy
@@ -13,6 +14,10 @@ CPU = cortex-m4
 CFLAGS += -mcpu=$(CPU) -march=armv7e-m -mtune=cortex-m4
 CFLAGS += -mlittle-endian -mthumb
 CFLAGS += -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+
+# Math library
+
+CFLAGS += -DARM_MATH_CM4 -D__FPU_PRESENT
 
 # Basic configurations
 CFLAGS += -g -std=c11
