@@ -1,5 +1,5 @@
 ;/*
-;    FreeRTOS V7.6.0 - Copyright (C) 2013 Real Time Engineers Ltd.
+;    FreeRTOS V8.1.2 - Copyright (C) 2014 Real Time Engineers Ltd.
 ;    All rights reserved
 ;
 ;
@@ -73,6 +73,7 @@
 _vector_14: .type func
 
 	mrs r0, psp
+	isb
 
 	;Get the location of the current TCB.
 	ldr.w	r3, =pxCurrentTCB
@@ -91,6 +92,7 @@ _vector_14: .type func
 
 	stmdb sp!, {r3}
 	ldr.w r0, =ulMaxSyscallInterruptPriorityConst
+	ldr r0, [r0]
 	msr basepri, r0
 	bl vTaskSwitchContext
 	mov r0, #0
@@ -110,6 +112,7 @@ _vector_14: .type func
 	vldmiaeq r0!, {s16-s31}
 
 	msr psp, r0
+	isb
 	bx r14
 
 	.size	_vector_14, $-_vector_14
@@ -125,6 +128,7 @@ _vector_14: .type func
 _lc_ref__vector_pp_14: .type func
 
 	mrs r0, psp
+	isb
 
 	;Get the location of the current TCB.
 	ldr.w	r3, =pxCurrentTCB
@@ -143,6 +147,7 @@ _lc_ref__vector_pp_14: .type func
 
 	stmdb sp!, {r3}
 	ldr.w r0, =ulMaxSyscallInterruptPriorityConst
+	ldr r0, [r0]
 	msr basepri, r0
 	bl vTaskSwitchContext
 	mov r0, #0
@@ -162,6 +167,7 @@ _lc_ref__vector_pp_14: .type func
 	vldmiaeq r0!, {s16-s31}
 
 	msr psp, r0
+	isb
 	push { lr }
 	pop { pc } ; XMC4000 specific errata workaround.  Do not used "bx lr" here.
 
@@ -181,6 +187,7 @@ SVC_Handler: .type func
 	;Pop the core registers.
 	ldmia r0!, {r4-r11, r14}
 	msr psp, r0
+	isb
 	mov r0, #0
 	msr	basepri, r0
 	bx r14
@@ -201,6 +208,9 @@ vPortStartFirstTask .type func
 	msr msp, r0
 	;Call SVC to start the first task.
 	cpsie i
+	cpsie f
+	dsb
+	isb
 	svc 0
 	.size	vPortStartFirstTask, $-vPortStartFirstTask
 	.endsec
@@ -230,6 +240,7 @@ vPortEnableVFP .type func
 ulPortSetInterruptMask:
 	mrs r0, basepri
 	ldr.w r1, =ulMaxSyscallInterruptPriorityConst
+	ldr r1, [r1]
 	msr basepri, r1
 	bx r14
 	.size	ulPortSetInterruptMask, $-ulPortSetInterruptMask
