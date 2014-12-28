@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V7.6.0 - Copyright (C) 2013 Real Time Engineers Ltd.
+    FreeRTOS V8.1.2 - Copyright (C) 2014 Real Time Engineers Ltd.
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
@@ -24,10 +24,10 @@
     the terms of the GNU General Public License (version 2) as published by the
     Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
 
-    >>! NOTE: The modification to the GPL is included to allow you to distribute
-    >>! a combined work that includes FreeRTOS without being obliged to provide
-    >>! the source code for proprietary components outside of the FreeRTOS
-    >>! kernel.
+    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
+    >>!   distribute a combined work that includes FreeRTOS without being   !<<
+    >>!   obliged to provide the source code for proprietary components     !<<
+    >>!   outside of the FreeRTOS kernel.                                   !<<
 
     FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -83,7 +83,7 @@
 
 xPortPendSVHandler:
 	mrs r0, psp
-
+	isb
 	/* Get the location of the current TCB. */
 	ldr	r3, =pxCurrentTCB
 	ldr	r2, [r3]
@@ -121,7 +121,7 @@ xPortPendSVHandler:
 	vldmiaeq r0!, {s16-s31}
 
 	msr psp, r0
-
+	isb
 	#ifdef WORKAROUND_PMU_CM001 /* XMC4000 specific errata */
 		#if WORKAROUND_PMU_CM001 == 1
 			push { r14 }
@@ -156,6 +156,7 @@ vPortSVCHandler:
 	/* Pop the core registers. */
 	ldmia r0!, {r4-r11, r14}
 	msr psp, r0
+	isb
 	mov r0, #0
 	msr	basepri, r0
 	bx r14
@@ -171,6 +172,9 @@ vPortStartFirstTask
 	msr msp, r0
 	/* Call SVC to start the first task. */
 	cpsie i
+	cpsie f
+	dsb
+	isb
 	svc 0
 
 /*-----------------------------------------------------------*/

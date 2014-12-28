@@ -41,7 +41,7 @@ $(BIN_IMAGE): $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJS) $(DAT)
 	@echo " LD      "$@
-	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIB_FILE)
 
 $(OUTDIR)/%.o: %.s
 	@mkdir -p $(dir $@)
@@ -70,6 +70,9 @@ debug: $(EXECUTABLE)
 	st-util &
 	$(GDB) -x $(TOOLDIR)/gdbscript
 
+clang_complete:
+	echo "$(INCLUDES) -std=c++11 -DSTM32F429xx -Wdeprecated-register" > .clang_complete_test
+
 clean:
 	rm -rf $(EXECUTABLE)
 	rm -rf $(BIN_IMAGE)
@@ -79,4 +82,4 @@ clean:
 	rm -f $(LIST_FILE)
 
 # -include $(DEPENDS)
-.PHONY: all clean flash openocd_flash debug
+.PHONY: all clean flash openocd_flash debug clang_complete

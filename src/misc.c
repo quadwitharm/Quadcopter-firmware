@@ -112,3 +112,9 @@ char *itoa(int num, unsigned int base){
     return buf+i+1;
 }
 
+void printFloat(float a){
+    if(a < 0){ kputs("-"); a = -a;}else{kputs(" ");}
+    kputs(itoa(a, 10));
+    kputs(".");
+    kputs( itoa( (100000 * a - 100000 * (int)a ) ,10) );
+}

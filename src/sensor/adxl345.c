@@ -1,10 +1,10 @@
 #include "sensor/adxl345.h"
+#include "sensor/sensor.h"
 #include "sensor/i2c.h"
 
 #include "task.h"
 #include "semphr.h"
 
-static xSemaphoreHandle ADXL345_Lock;
 struct ADXL345 ADXL345;
 
 void Write_ADXL345(uint8_t Register, uint8_t content){
@@ -24,30 +24,41 @@ void READ_ADXL345(uint8_t addr,uint8_t buf[]){
 void ADXL345_Init(){
     /* Init control register */
     kputs("Setting Control Register for ADXL345\r\n");
+
+    /* standby mode */
     Write_ADXL345(POWER_CTL  , 0b00000000);
-    Write_ADXL345(DATA_FORMAT, 0b00000000);
+
+    /* full resolution mode, +-16g */
+    Write_ADXL345(DATA_FORMAT, 0b00001011);
+
+    /* bypass mode */
     Write_ADXL345(FIFO_CTL   , 0b00000000);
-    Write_ADXL345(BW_RATE    , 0b00000000);
-    Write_ADXL345(POWER_CTL  , 0b00000000);
+
+    /* output data rate 100Hz */
+    Write_ADXL345(BW_RATE    , 0b00001100);
+
+    /* measurement mode */
+    Write_ADXL345(POWER_CTL  , 0b00001000);
+
     kputs("Control Register for ADXL345 had been set\r\n");
 }
 
 void ADXL345_Recv(void *arg){
-    while(1){
-        xSemaphoreTake( ADXL345_Lock, ( portTickType ) portMAX_DELAY );
-        /* TODO: check data is available or not */
-        /* Data not available yet */
-        if(1){
-            xSemaphoreGive( ADXL345_Lock );
-            continue;
-        }
-        /* TODO: read data */
-        xSemaphoreGive( ADXL345_Lock );
-    }
-}
+    uint8_t _STATUS;
+    READ_ADXL345(INT_SOURCE, &_STATUS);
 
-void ADXL345_Process(void *arg){
-    xSemaphoreTake( ADXL345_Lock, ( portTickType ) portMAX_DELAY );
-    /* TODO: process data */
-    xSemaphoreGive( ADXL345_Lock );
+    /* Data not available yet */
+    if(!(_STATUS & 0b10000000)){
+        return;
+    }
+
+    READ_ADXL345(DATAX1, &ADXL345.uint8.XH);
+    READ_ADXL345(DATAX0, &ADXL345.uint8.XL);
+
+    READ_ADXL345(DATAY1, &ADXL345.uint8.YH);
+    READ_ADXL345(DATAY0, &ADXL345.uint8.YL);
+
+    READ_ADXL345(DATAZ1, &ADXL345.uint8.ZH);
+    READ_ADXL345(DATAZ0, &ADXL345.uint8.ZL);
+    setDataReady(ADXL345_DRDY_BIT);
 }

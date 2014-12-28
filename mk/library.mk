@@ -26,3 +26,30 @@ SRC += \
 SRC += $(wildcard $(addsuffix /*.c,$(SRCDIR))) \
 	  $(wildcard $(addsuffix /*.s,$(SRCDIR)))
 
+DSP_LIB ?= $(STM32CUBE)/Drivers/CMSIS/DSP_Lib
+
+DSP_SRC_DIR += \
+			   $(DSP_LIB)/Source/BasicMathFunctions \
+			   $(DSP_LIB)/Source/CommonTables \
+			   $(DSP_LIB)/Source/ComplexMathFunctions \
+			   $(DSP_LIB)/Source/ControllerFunctions \
+			   $(DSP_LIB)/Source/FastMathFunctions \
+			   $(DSP_LIB)/Source/FilteringFunctions \
+			   $(DSP_LIB)/Source/MatrixFunctions \
+			   $(DSP_LIB)/Source/StatisticsFunctions \
+			   $(DSP_LIB)/Source/SupportFunctions \
+			   $(DSP_LIB)/Source/TransformFunctions \
+
+USE_LIB += \
+			   BasicMathFunctions \
+			   CommonTables \
+			   ComplexMathFunctions \
+			   ControllerFunctions \
+			   FastMathFunctions \
+			   FilteringFunctions \
+			   MatrixFunctions \
+			   StatisticsFunctions \
+			   SupportFunctions \
+			   TransformFunctions \
+
+LIB_FILE = $(addprefix lib/,$(addsuffix .a, $(USE_LIB)))

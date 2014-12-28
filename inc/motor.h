@@ -10,8 +10,8 @@
 
 bool Init_Motor();
 
-inline void lockMotorMutex();
-inline void unlockMotorMutex();
+void lockMotorMutex();
+void unlockMotorMutex();
 
 struct MotorSpeed{
     float motor1;

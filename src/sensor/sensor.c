@@ -3,18 +3,21 @@
 #include "sensor/adxl345.h"
 
 #include "task.h"
+#include "arm_math.h"
 
+EventGroupHandle_t xDataReady;
 xTaskHandle recvTaskHandle;
 xTaskHandle processTaskHandle;
 
 /* Definition of shared resource */
 struct Attitude xAttitude;
-struct Attitude vAttitude;
-struct Attitude aAttitude;
+struct Attitude lastAngularSpeed;
 
 struct Vector3D position;
 struct Vector3D velocity;
 struct Vector3D acceleration;
+
+float F;
 
 void ProcessTask(void *arg);
 void SensorTask(void *arg);
@@ -27,28 +30,33 @@ bool InitSensorPeriph(){
 
     /* Initialize sensors on GY-801 */
     L3G4200D_Init();
+    ADXL345_Init();
 
     return true;
 }
 
 bool InitSensorTask(){
+
+    xDataReady = xEventGroupCreate();
+
     /* FreeRTOS Tasks */
     portBASE_TYPE ret;
     ret = xTaskCreate(SensorTask,
-            (signed portCHAR *)"IMU data fetch",
+            (portCHAR *)"IMU data fetch",
             512,
             NULL,
             tskIDLE_PRIORITY + 2,
             &recvTaskHandle);
     if(ret != pdPASS)return false;
     ret = xTaskCreate(ProcessTask,
-            (signed portCHAR *)"Attitude data proccess",
+            (portCHAR *)"Attitude data proccess",
             512,
             NULL,
-            tskIDLE_PRIORITY + 2,
+            tskIDLE_PRIORITY + 3,
             &processTaskHandle);
+    if(ret != pdPASS)return false;
     ret = xTaskCreate(TestOutput,
-            (signed portCHAR *)"Test",
+            (portCHAR *)"Test",
             512,
             NULL,
             tskIDLE_PRIORITY + 2,
@@ -61,42 +69,55 @@ bool InitSensorTask(){
 void SensorTask(void *arg){
     while(1){
         L3G4200D_Recv(arg);
+        ADXL345_Recv(arg);
     }
 }
+
+float X,Y,Z;
 
 void ProcessTask(void *arg){
     while(1){
-        L3G4200D_Process(arg);
+        xEventGroupWaitBits(xDataReady, ALL_DRDY_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
+
+        // Read from shared memory
+        struct Attitude lastAngle = {
+            lastAngularSpeed.roll,
+            lastAngularSpeed.pitch,
+            lastAngularSpeed.yaw,
+        };
+        struct Attitude lastAttitude = {
+            xAttitude.roll,
+            xAttitude.pitch,
+            xAttitude.yaw,
+        };
+        struct Vector3D accel = {
+            ADXL345.int16.X,
+            ADXL345.int16.Y,
+            ADXL345.int16.Z,
+        };
+
+        xEventGroupClearBits(xDataReady, ALL_DRDY_BIT);
     }
 }
 
-void printFloat(float a){
-    if(a < 0){ kputs("-"); a = -a;}else{kputs(" ");}
-    kputs(itoa(a, 10));
-    kputs(".");
-    kputs( itoa( (100000 * a - 100000 * (int)a ) ,10) );
+void setDataReady(EventBits_t source){
+    xEventGroupSetBits(xDataReady, source);
 }
 
 void TestOutput(void *arg){
     while(1){
-        kputs("vRow:   ");
-        printFloat(vAttitude.row);
-        kputs("\r\n");
-        kputs("vPitch: ");
-        printFloat(vAttitude.pitch);
-        kputs("\r\n");
-        kputs("vYaw:   ");
-        printFloat(vAttitude.yaw);
-        kputs("\r\n");
-
-        kputs("Row:   ");
-        printFloat(xAttitude.row);
-        kputs("\r\n");
-        kputs("Pitch: ");
+        printFloat(X);
+        kputs(",");
+        printFloat(Y);
+        kputs(",");
+        printFloat(Z);
+        kputs(",");
+        printFloat(xAttitude.roll);
+        kputs(",");
         printFloat(xAttitude.pitch);
+        kputs(",");
+        printFloat(F);
         kputs("\r\n");
-        kputs("Yaw:   ");
-        printFloat(xAttitude.yaw);
-        kputs("\r\n");
+        vTaskDelay(10);
     }
 }
