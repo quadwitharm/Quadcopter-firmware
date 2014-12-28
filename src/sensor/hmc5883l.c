@@ -5,7 +5,7 @@
 #include "task.h"
 #include "semphr.h"
 
-static xSemaphoreHandle HMC5833L_Lock;
+static xSemaphoreHandle HMC5883L_Lock;
 static bool dataAvailable = false;
 struct HMC5883L HMC5883L;
 
@@ -41,29 +41,27 @@ void HMC5883L_Init(){
 }
 
 void HMC5883L_Recv(void *arg){
-    while(1){
-        xSemaphoreTake( HMC5883L_Lock, ( portTickType ) portMAX_DELAY );
-        uint8_t FIFO_STATUS;
-        READ_HMC5883L(FIFO_SRC_REG, &FIFO_STATUS);
+    xSemaphoreTake( HMC5883L_Lock, ( portTickType ) portMAX_DELAY );
+    uint8_t FIFO_STATUS;
+//        READ_HMC5883L(FIFO_SRC_REG, &FIFO_STATUS);
+//
+//        /* Data not available yet */
+//        if(FIFO_STATUS & 0b00100000){
+//            xSemaphoreGive( HMC5883L_Lock );
+//            continue;
+//        }
 
-        /* Data not available yet */
-        if(FIFO_STATUS & 0b00100000){
-            xSemaphoreGive( HMC5883L_Lock );
-            continue;
-        }
+    READ_HMC5883L(DataXMSB, &HMC5883L.uint8.XH);
+    READ_HMC5883L(DataXLSB, &HMC5883L.uint8.XL);
 
-        READ_HMC5883L(DataXMSB, &HMC5883L.uint8.XH);
-        READ_HMC5883L(DataXLSB, &HMC5883L.uint8.XL);
+    READ_HMC5883L(DataYMSB, &HMC5883L.uint8.YH);
+    READ_HMC5883L(DataYLSB, &HMC5883L.uint8.YL);
 
-        READ_HMC5883L(DataYMSB, &HMC5883L.uint8.YH);
-        READ_HMC5883L(DataYMSB, &HMC5883L.uint8.YL);
+    READ_HMC5883L(DataZMSB, &HMC5883L.uint8.ZH);
+    READ_HMC5883L(DataZLSB, &HMC5883L.uint8.ZL);
 
-        READ_HMC5883L(DataZMSB, &HMC5883L.uint8.ZH);
-        READ_HMC5883L(DataZMSB, &HMC5883L.uint8.ZL);
-
-        dataAvailable = true;
-        xSemaphoreGive( HMC5883L_Lock );
-    }
+    dataAvailable = true;
+    xSemaphoreGive( HMC5883L_Lock );
 }
 void HMC5883L_Process(void *arg){
     xSemaphoreTake( HMC5883L_Lock, ( portTickType ) portMAX_DELAY );
@@ -78,14 +76,6 @@ void HMC5883L_Process(void *arg){
     HMC5883L.uint8.XL = HMC5883L.uint8.XL & 0b11111100;
     HMC5883L.uint8.YL = HMC5883L.uint8.YL & 0b11111100;
     HMC5883L.uint8.ZL = HMC5883L.uint8.ZL & 0b11111100;
-
-    vAttitude.row   = HMC5883L.int16.X;// * 0.00875;
-    vAttitude.pitch = HMC5883L.int16.Y;// * 0.00875;
-    vAttitude.yaw   = HMC5883L.int16.Z;// * 0.00875;
-
-    xAttitude.row   += vAttitude.row * .00125;
-    xAttitude.pitch += vAttitude.pitch * .00125;
-    xAttitude.yaw   += vAttitude.yaw * .00125;
 
     xSemaphoreGive( HMC5883L_Lock );
 }

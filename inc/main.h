@@ -23,6 +23,7 @@ void printBinary_uint8(uint8_t c);
 void printBinary_uint16(uint16_t c);
 void printBinary_uint32(uint32_t c);
 char *itoa(int num, unsigned int base);
+void printFloat(float a);
 
 #ifdef __cplusplus
 }

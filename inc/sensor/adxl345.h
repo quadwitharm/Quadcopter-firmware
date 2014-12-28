@@ -22,6 +22,7 @@ extern "C" {
             }int16;
         };
     };
+    extern struct ADXL345 ADXL345;
 
     void ADXL345_Init();
     void ADXL345_Recv(void*);
