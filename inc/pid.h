@@ -4,7 +4,6 @@
 #include "main.h"
 
 typedef struct pid_context_t{
-    float dt;
     float kp,ki,kd;
     float prev_in;
     float integral;

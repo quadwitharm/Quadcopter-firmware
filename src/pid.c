@@ -1,5 +1,9 @@
 #include "pid.h"
 
+//control loop is has fixed frequency ,use constant dt for pid
+#define FREQUENCY 60.0f
+#define DT (1.0/FREQUENCY)
+
 float runPID(pid_context_t * p,float setpoint,float input){
 
     float error;
@@ -8,11 +12,11 @@ float runPID(pid_context_t * p,float setpoint,float input){
 
     error = setpoint - input;
     //use input instead of error to avoid derivative kick
-    deriv = (input - p->prev_in) / p->dt;
+    deriv = (input - p->prev_in) / DT;
 
     //intergal has already included ki part
     //to avoid sudden gain caused by changing ki 
-    p->integral += p->ki * error * p->dt;
+    p->integral += p->ki * error * DT;
 
     if(p->integral > p->max){p->integral = p->max;}
     if(p->integral < p->min){p->integral = p->min;}
@@ -27,7 +31,6 @@ float runPID(pid_context_t * p,float setpoint,float input){
 
 
 void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,pid_context_t *yaw){
-    roll->dt = 0.01666666666f;//60Hz
     roll->kp;
     roll->ki;
     roll->kd;
@@ -36,7 +39,6 @@ void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,pid_context_t *y
     roll->max;
     roll->min;
 
-    pitch->dt = 0.01666666666f;
     pitch->kp;
     pitch->ki;
     pitch->kd;
@@ -45,7 +47,6 @@ void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,pid_context_t *y
     pitch->max;
     pitch->min;
 
-    yaw->dt = 0.01666666666f;
     yaw->kp;
     yaw->ki;
     yaw->kd;
@@ -57,7 +58,6 @@ void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,pid_context_t *y
 
 
 void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,pid_context_t *yaw_r){
-    roll_r->dt = 0.01666666666f;
     roll_r->kp;
     roll_r->ki;
     roll_r->kd;
@@ -66,7 +66,6 @@ void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,pid_context_t *y
     roll->max;
     roll->min;
 
-    pitch_r->dt = 0.01666666666f;
     pitch_r->kp;
     pitch_r->ki;
     pitch_r->kd;
@@ -75,7 +74,6 @@ void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,pid_context_t *y
     pitch_r->max;
     pitch_r->min;
 
-    yaw_r->dt = 0.01666666666f;
     yaw_r->kp;
     yaw_r->ki;
     yaw_r->kd;
