@@ -5,7 +5,7 @@
 
 typedef struct pid_context_t{
     float kp,ki,kd;
-    float prev_err;
+    float prev_in;
     float integral;
     float max,min;
 } pid_context_t;
