@@ -19,7 +19,7 @@ extern "C" {
     void BMP180_Process(void*);
 
     /* Device Address */
-#define _START
+#define BMP180_START 0xEE
 
 
 #ifdef __cplusplus

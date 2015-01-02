@@ -1,5 +1,9 @@
 #include "sensor/i2c.h"
+
+#include "stm32f4xx_hal_gpio.h"
+
 #include "task.h"
+
 
 static I2C_HandleTypeDef I2c_Handle;
 
@@ -87,6 +91,27 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef *hi2c) {
 
     HAL_NVIC_DisableIRQ(I2Cx_ER_IRQn);
     HAL_NVIC_DisableIRQ(I2Cx_EV_IRQn);
+}
+
+void I2C_PowerOn(){
+    HAL_GPIO_WritePin(I2Cx_POWER_GPIO_PORT, I2Cx_POWER_PIN, GPIO_PIN_SET);
+}
+
+void I2C_PowerOff(){
+    HAL_GPIO_WritePin(I2Cx_POWER_GPIO_PORT, I2Cx_POWER_PIN, GPIO_PIN_RESET);
+}
+
+void I2C_PowerInit(){
+    __GPIOG_CLK_ENABLE();
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    GPIO_InitStructure.Pin = I2Cx_POWER_PIN;
+    GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStructure.Pull = GPIO_PULLUP;
+    GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
+
+    HAL_GPIO_Init(I2Cx_POWER_GPIO_PORT, &GPIO_InitStructure);
+    HAL_GPIO_TogglePin(I2Cx_POWER_GPIO_PORT, I2Cx_POWER_PIN);
 }
 
 bool I2C_Init(){
