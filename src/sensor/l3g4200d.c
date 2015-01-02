@@ -30,11 +30,13 @@ void L3G4200D_Init(){
     /* Block data update, 250dps (0.00875 * value degree per second) */
     Write_L3G4200D(CTRL_REG4, 0b10000000);
 
+#if 1
     /* Enable FIFO & reboot memory content */
     Write_L3G4200D(CTRL_REG5, 0b11000000);
 
     /* Stream mode, Watermark level: 16 */
     Write_L3G4200D(FIFO_CTRL_REG, 0b01010000);
+#endif
 
     kputs("Control Register for L3G4200D had been set\r\n");
 }
@@ -49,11 +51,10 @@ void L3G4200D_Recv(void *arg){
 
     READ_L3G4200D(OUT_X_H, &L3G4200D.uint8.XH);
     READ_L3G4200D(OUT_X_L, &L3G4200D.uint8.XL);
-
     READ_L3G4200D(OUT_Y_H, &L3G4200D.uint8.YH);
     READ_L3G4200D(OUT_Y_L, &L3G4200D.uint8.YL);
-
     READ_L3G4200D(OUT_Z_H, &L3G4200D.uint8.ZH);
     READ_L3G4200D(OUT_Z_L, &L3G4200D.uint8.ZL);
+
     setDataReady(L3G4200D_DRDY_BIT);
 }

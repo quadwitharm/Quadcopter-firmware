@@ -5,8 +5,6 @@
 #include "task.h"
 #include "semphr.h"
 
-static xSemaphoreHandle HMC5883L_Lock;
-static bool dataAvailable = false;
 struct HMC5883L HMC5883L;
 
 void Write_HMC5883L(uint8_t Register, uint8_t content){
@@ -24,8 +22,6 @@ void READ_HMC5883L(uint8_t addr,uint8_t buf[]){
 };
 
 void HMC5883L_Init(){
-    HMC5883L_Lock = xSemaphoreCreateMutex();
-
     kputs("Setting Control Register for HMC5883L\r\n");
 
     /* average 8 per measurement output, output data rate is 15Hz */
@@ -41,15 +37,7 @@ void HMC5883L_Init(){
 }
 
 void HMC5883L_Recv(void *arg){
-    xSemaphoreTake( HMC5883L_Lock, ( portTickType ) portMAX_DELAY );
-    uint8_t FIFO_STATUS;
-//        READ_HMC5883L(FIFO_SRC_REG, &FIFO_STATUS);
-//
-//        /* Data not available yet */
-//        if(FIFO_STATUS & 0b00100000){
-//            xSemaphoreGive( HMC5883L_Lock );
-//            continue;
-//        }
+    /* TODO: check if data availible*/
 
     READ_HMC5883L(DataXMSB, &HMC5883L.uint8.XH);
     READ_HMC5883L(DataXLSB, &HMC5883L.uint8.XL);
@@ -60,22 +48,5 @@ void HMC5883L_Recv(void *arg){
     READ_HMC5883L(DataZMSB, &HMC5883L.uint8.ZH);
     READ_HMC5883L(DataZLSB, &HMC5883L.uint8.ZL);
 
-    dataAvailable = true;
-    xSemaphoreGive( HMC5883L_Lock );
-}
-void HMC5883L_Process(void *arg){
-    xSemaphoreTake( HMC5883L_Lock, ( portTickType ) portMAX_DELAY );
-
-    /* Assume data will be proccessed before next read to data */
-    if(!dataAvailable){
-        xSemaphoreGive( HMC5883L_Lock );
-        return;
-    }
-    dataAvailable = false;
-
-    HMC5883L.uint8.XL = HMC5883L.uint8.XL & 0b11111100;
-    HMC5883L.uint8.YL = HMC5883L.uint8.YL & 0b11111100;
-    HMC5883L.uint8.ZL = HMC5883L.uint8.ZL & 0b11111100;
-
-    xSemaphoreGive( HMC5883L_Lock );
+    setDataReady(HMC58831_DRDY_BIT);
 }

@@ -25,19 +25,19 @@ void ADXL345_Init(){
     /* Init control register */
     kputs("Setting Control Register for ADXL345\r\n");
 
-    /* standby mode */
+    /* Standby mode */
     Write_ADXL345(POWER_CTL  , 0b00000000);
 
-    /* full resolution mode, +-16g */
+    /* Full resolution mode, +-16g */
     Write_ADXL345(DATA_FORMAT, 0b00001011);
 
-    /* bypass mode */
+    /* Bypass mode */
     Write_ADXL345(FIFO_CTL   , 0b00000000);
 
-    /* output data rate 100Hz */
+    /* Output data rate 100Hz */
     Write_ADXL345(BW_RATE    , 0b00001100);
 
-    /* measurement mode */
+    /* Measurement mode */
     Write_ADXL345(POWER_CTL  , 0b00001000);
 
     kputs("Control Register for ADXL345 had been set\r\n");
