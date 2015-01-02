@@ -4,15 +4,13 @@
 #define FREQUENCY 60.0f
 #define DT (1.0/FREQUENCY)
 
-float runPID(pid_context_t * p,float setpoint,float input){
+float _runPID(pid_context_t * p,float error,float diff){
 
-    float error;
     float deriv;
     float output;
 
-    error = setpoint - input;
     //use input instead of error to avoid derivative kick
-    deriv = (input - p->prev_in) / DT;
+    deriv = diff / DT;
 
     //intergal has already included ki part
     //to avoid sudden gain caused by changing ki 
@@ -21,7 +19,6 @@ float runPID(pid_context_t * p,float setpoint,float input){
     if(p->integral > p->max){p->integral = p->max;}
     if(p->integral < p->min){p->integral = p->min;}
 
-    p->prev_in = input;
     output =  error*p->kp + p->integral + deriv*p->kd;
 
     if(output > p->max){output = p->max;}     
@@ -29,8 +26,41 @@ float runPID(pid_context_t * p,float setpoint,float input){
     return output;
 }
 
+float runPID(pid_context_t * p,float setpoint,float input){
 
-void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,pid_context_t *yaw){
+    float diff = input - p->prev_in;
+
+    p->prev_in = input;
+    return _runPID(&p, setpoint - input, diff);
+}
+
+float runPID_warp(pid_context_t * p,float setpoint,float input,
+    float warp_max,float warp_min){
+
+    float error = setpoint - input;
+    float diff = input - p->prev_in;
+    float range = warp_max - warp_min;
+
+    //warp the values
+    if(error > warp_max){
+        error -= range;
+    else if(error < warp_min){
+        error += range;
+    }
+
+    if(diff > warp_max){
+        diff -= range;
+    else if(diff < warp_min){
+        diff += range;
+    }
+
+    p->prev_in = input;
+    return _doPID(&p,error,diff);
+}
+
+void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,
+    pid_context_t *yaw){
+
     roll->kp;
     roll->ki;
     roll->kd;
@@ -56,8 +86,9 @@ void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,pid_context_t *y
     yaw->min;
 }
 
+void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,
+    pid_context_t *yaw_r){
 
-void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,pid_context_t *yaw_r){
     roll_r->kp;
     roll_r->ki;
     roll_r->kd;
