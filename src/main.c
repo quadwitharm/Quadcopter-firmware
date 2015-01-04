@@ -9,6 +9,7 @@
 #include "uart.h"
 #include "sensor/sensor.h"
 #include "motor.h"
+#include "controller/control_task.h"
 
 int main(void){
     HAL_Init();
@@ -34,6 +35,8 @@ int main(void){
     if(!Init_Motor()){
         kputs("Initialze motor task failed!");
     }
+    Init_Controller();
+
     vTaskStartScheduler();
 
     while(1);

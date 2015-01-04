@@ -15,6 +15,7 @@ SRCDIR += \
     port \
     src \
     src/sensor \
+    src/controller \
 
 INCDIR += \
     inc \
