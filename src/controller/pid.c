@@ -1,4 +1,4 @@
-#include "pid.h"
+#include "controller/pid.h"
 
 //control loop is has fixed frequency ,use constant dt for pid
 #define FREQUENCY 60.0f
@@ -15,7 +15,7 @@ float runPID(pid_context_t * p,float setpoint,float input){
     deriv = (input - p->prev_in) / DT;
 
     //intergal has already included ki part
-    //to avoid sudden gain caused by changing ki 
+    //to avoid sudden gain caused by changing ki
     p->integral += p->ki * error * DT;
 
     if(p->integral > p->max){p->integral = p->max;}
@@ -24,7 +24,7 @@ float runPID(pid_context_t * p,float setpoint,float input){
     p->prev_in = input;
     output =  error*p->kp + p->integral + deriv*p->kd;
 
-    if(output > p->max){output = p->max;}     
+    if(output > p->max){output = p->max;}
     if(output < p->min){output = p->min;}
     return output;
 }
@@ -63,8 +63,8 @@ void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,pid_context_t *y
     roll_r->kd;
     roll_r->prev_in = 0.0f;
     roll_r->integral = 0.0f;
-    roll->max;
-    roll->min;
+    roll_r->max;
+    roll_r->min;
 
     pitch_r->kp;
     pitch_r->ki;
