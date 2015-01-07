@@ -21,7 +21,6 @@ struct Vector3D acceleration;
 
 void ProcessTask(void *arg);
 void SensorTask(void *arg);
-void TestOutput(void *arg);
 
 bool InitSensorPeriph(){
     kputs("I2C: Initialing ...\r\n");
@@ -55,14 +54,6 @@ bool InitSensorTask(){
             tskIDLE_PRIORITY + 4,
             &processTaskHandle);
     if(ret != pdPASS)return false;
-    ret = xTaskCreate(TestOutput,
-            (portCHAR *)"Test",
-            512,
-            NULL,
-            tskIDLE_PRIORITY + 3,
-            NULL);
-    if(ret != pdPASS)return false;
-
     return true;
 }
 
@@ -70,6 +61,7 @@ void SensorTask(void *arg){
     while(1){
         L3G4200D_Recv(arg);
         ADXL345_Recv(arg);
+        vTaskDelay(1);
     }
 }
 
@@ -160,11 +152,4 @@ void ProcessTask(void *arg){
 
 void setDataReady(EventBits_t source){
     xEventGroupSetBits(xDataReady, source);
-}
-
-void TestOutput(void *arg){
-    while(1){
-        kprintf("%f,%f,%f\r\n",xAttitude.roll,xAttitude.pitch,xAttitude.yaw);
-        vTaskDelay(20);
-    }
 }

@@ -236,12 +236,12 @@ void UART8_IRQHandler(void){
 }
 
 void send_byte(char ch){
-    UART_send_IT((uint8_t *)&ch,1);
+    UART_send/*_IT*/((uint8_t *)&ch,1);
 }
 
 char recv_byte(){
-    //USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+//    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
     char msg;
-    UART_recv_IT((uint8_t *)&msg,1);
+    UART_recv/*_IT*/((uint8_t *)&msg,1);
     return msg;
 }

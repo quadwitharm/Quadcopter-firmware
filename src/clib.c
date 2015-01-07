@@ -76,15 +76,19 @@ void gets(char buf[],int len){
     int i = 0;
     while(i < len - 1){
         buf[i] = recv_byte();
-        ++i;
-        if(buf[i] == '\n'){
+        putc(buf[i]);
+        if(buf[i] == '\r'){
+            putc('\n');
             break;
         }
+        ++i;
     }
     buf[i] = '\0';
 }
 char getc(){
-    return recv_byte();
+    char ch = recv_byte();
+    putc(ch);
+    return ch;
 }
 int printf(const char *format, ...){
     char outbuf[128];

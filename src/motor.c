@@ -62,8 +62,10 @@ bool Init_Motor(){
     status = HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_3);
     status = HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_4);
 
-    // Wait ESC to be initialized
+
+    kputs("Wait ESC to be initialized\r\n");
     for(int i = 0 ; i < 100000000;++i);
+
 
     HAL_TIM_Base_Start_IT(&TIM2_Handle);
 
