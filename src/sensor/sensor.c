@@ -59,7 +59,7 @@ bool InitSensorTask(){
             (portCHAR *)"Test",
             512,
             NULL,
-            tskIDLE_PRIORITY + 1,
+            tskIDLE_PRIORITY + 3,
             NULL);
     if(ret != pdPASS)return false;
 
@@ -164,13 +164,7 @@ void setDataReady(EventBits_t source){
 
 void TestOutput(void *arg){
     while(1){
-        printFloat(xAttitude.roll);
-        kputs(",");
-        printFloat(xAttitude.pitch);
-        kputs(",");
-        printFloat(xAttitude.yaw);
-        kputs(",");
-        kputs("\r\n");
-        vTaskDelay(10);
+        kprintf("%f,%f,%f\r\n",xAttitude.roll,xAttitude.pitch,xAttitude.yaw);
+        vTaskDelay(20);
     }
 }

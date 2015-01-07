@@ -43,7 +43,7 @@ $(BIN_IMAGE): $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJS) $(DAT)
 	@echo " LD      "$@
-	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIB_FILE)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIB_FILE) -Wl,--start-group -lgcc -lg -lc -lm -lnosys -Wl,--end-group
 
 $(OUTDIR)/%.o: %.s
 	@mkdir -p $(dir $@)
