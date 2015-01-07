@@ -99,7 +99,8 @@ static int echo_command(int argc, char **argv){
 }
 
 static int current_attitude_command(int argc, char **argv){
-    int max = 1000;
+    int max = 100; /* default is 100 */
+    if(argc == 2) max = atoi(argv[1]);
     for(int i = 0;i < max;++i){
         kprintf("%f,%f,%f\r\n",xAttitude.roll,xAttitude.pitch,xAttitude.yaw);
         vTaskDelay(20);
