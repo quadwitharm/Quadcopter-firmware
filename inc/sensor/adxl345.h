@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-#include "main.h"
+#include "clib.h"
     struct ADXL345{
         union{
             struct{

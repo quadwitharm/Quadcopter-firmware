@@ -1,7 +1,7 @@
 #ifndef __PID_H__
 #define __PID_H__
 
-#include "main.h"
+#include "clib.h"
 
 typedef struct pid_context_t{
     float kp,ki,kd;

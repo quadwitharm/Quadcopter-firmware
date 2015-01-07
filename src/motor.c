@@ -1,5 +1,10 @@
 #include "motor.h"
 
+#include "task.h"
+#include "semphr.h"
+
+#include "stm32f4xx_hal_tim.h"
+
 #define GPIO_PIN_CHANNEL1 GPIO_PIN_0  // PA0
 #define GPIO_PIN_CHANNEL2 GPIO_PIN_3  // PB3
 #define GPIO_PIN_CHANNEL3 GPIO_PIN_10 // PB10
@@ -59,6 +64,8 @@ bool Init_Motor(){
 
     // Wait ESC to be initialized
     for(int i = 0 ; i < 100000000;++i);
+
+    HAL_TIM_Base_Start_IT(&TIM2_Handle);
 
     kputs("Initialized TIM\r\n");
     return true;

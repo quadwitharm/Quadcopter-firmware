@@ -1,7 +1,7 @@
 #ifndef __CONTROL_API_H__
 #define __CONTROL_API_H__
 
-#include "main.h"
+#include "clib.h"
 
 enum Axis{ ROLL, PITCH, YAW, X, Y, Z, NUM_AXIS };
 enum PID_K{ KP, KI, KD };

@@ -4,7 +4,8 @@
 extern "C" {
 #endif
 
-#include "main.h"
+#include "clib.h"
+
     struct L3G4200D{
         union{
             struct{

@@ -4,7 +4,8 @@
 extern "C" {
 #endif
 
-#include "main.h"
+#include "clib.h"
+
     struct BMP180{
         uint8_t XH;
         uint8_t XL;

@@ -1,7 +1,7 @@
 #ifndef __CONTROL_TASK_H__
 #define __CONTROL_TASK_H__
 
-#include "main.h"
+#include "clib.h"
 
 bool Init_Controller();
 

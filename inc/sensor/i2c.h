@@ -1,7 +1,7 @@
 #ifndef __I2C_H__
 #define __I2C_H__
 
-#include "main.h"
+#include "clib.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
 

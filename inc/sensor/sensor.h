@@ -1,9 +1,8 @@
 #ifndef __SENSOR_H__
 #define __SENSOR_H__
 
-#include "main.h"
+#include "clib.h"
 #include "event_groups.h"
-#include "sensor/i2c.h"
 
 struct Angle3D{
     float roll;

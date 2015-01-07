@@ -1,5 +1,5 @@
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef __CLIB_H__
+#define __CLIB_H__
 
 /*
  * 
@@ -19,6 +19,10 @@ void kputs(const char *);
 void kputc(char);
 void kgets(char buf[],int len);
 char kgetc();
+void puts(const char *str);
+void putc(const char c);
+void gets(char buf[],int len);
+char getc();
 void printBinary_uint8(uint8_t c);
 void printBinary_uint16(uint16_t c);
 void printBinary_uint32(uint32_t c);

@@ -16,6 +16,7 @@ SRCDIR += \
     src \
     src/sensor \
     src/controller \
+    src/shell \
 
 INCDIR += \
     inc \

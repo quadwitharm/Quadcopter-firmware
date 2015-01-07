@@ -1,6 +1,7 @@
 #include "sensor/sensor.h"
 #include "sensor/l3g4200d.h"
 #include "sensor/adxl345.h"
+#include "sensor/i2c.h"
 
 #include "task.h"
 #include "arm_math.h"
@@ -44,21 +45,21 @@ bool InitSensorTask(){
             (portCHAR *)"IMU data fetch",
             512,
             NULL,
-            tskIDLE_PRIORITY + 2,
+            tskIDLE_PRIORITY + 3,
             &recvTaskHandle);
     if(ret != pdPASS)return false;
     ret = xTaskCreate(ProcessTask,
             (portCHAR *)"Attitude data proccess",
             512,
             NULL,
-            tskIDLE_PRIORITY + 3,
+            tskIDLE_PRIORITY + 4,
             &processTaskHandle);
     if(ret != pdPASS)return false;
     ret = xTaskCreate(TestOutput,
             (portCHAR *)"Test",
             512,
             NULL,
-            tskIDLE_PRIORITY + 2,
+            tskIDLE_PRIORITY + 1,
             NULL);
     if(ret != pdPASS)return false;
 
