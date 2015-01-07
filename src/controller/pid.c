@@ -4,15 +4,13 @@
 #define FREQUENCY 60.0f
 #define DT (1.0/FREQUENCY)
 
+#define ANGLE_MAX  180
+#define ANGLE_MIN -180
+
 float runPID(pid_context_t * p,float setpoint,float input){
-
-    float error;
-    float deriv;
-    float output;
-
-    error = setpoint - input;
+    float error = setpoint - input;
     //use input instead of error to avoid derivative kick
-    deriv = (input - p->prev_in) / DT;
+    float deriv = (input - p->prev_in) / DT;
 
     //intergal has already included ki part
     //to avoid sudden gain caused by changing ki
@@ -22,7 +20,7 @@ float runPID(pid_context_t * p,float setpoint,float input){
     if(p->integral < p->min){p->integral = p->min;}
 
     p->prev_in = input;
-    output =  error*p->kp + p->integral + deriv*p->kd;
+    float output =  error*p->kp + p->integral + deriv*p->kd;
 
     if(output > p->max){output = p->max;}
     if(output < p->min){output = p->min;}
@@ -36,24 +34,24 @@ void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,pid_context_t *y
     roll->kd;
     roll->prev_in = 0.0f;
     roll->integral = 0.0f;
-    roll->max;
-    roll->min;
+    roll->max = ANGLE_MAX;
+    roll->min = ANGLE_MIN;
 
     pitch->kp;
     pitch->ki;
     pitch->kd;
     pitch->prev_in = 0.0f;
     pitch->integral = 0.0f;
-    pitch->max;
-    pitch->min;
+    pitch->max = ANGLE_MAX;
+    pitch->min = ANGLE_MIN;
 
     yaw->kp;
     yaw->ki;
     yaw->kd;
     yaw->prev_in = 0.0f;
     yaw->integral = 0.0f;
-    yaw->max;
-    yaw->min;
+    yaw->max = ANGLE_MAX;
+    yaw->min = ANGLE_MIN;
 }
 
 
@@ -63,23 +61,23 @@ void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,pid_context_t *y
     roll_r->kd;
     roll_r->prev_in = 0.0f;
     roll_r->integral = 0.0f;
-    roll_r->max;
-    roll_r->min;
+    roll_r->max = ANGLE_MAX;
+    roll_r->min = ANGLE_MIN;
 
     pitch_r->kp;
     pitch_r->ki;
     pitch_r->kd;
     pitch_r->prev_in = 0.0f;
     pitch_r->integral = 0.0f;
-    pitch_r->max;
-    pitch_r->min;
+    pitch_r->max = ANGLE_MAX;
+    pitch_r->min = ANGLE_MIN;
 
     yaw_r->kp;
     yaw_r->ki;
     yaw_r->kd;
     yaw_r->prev_in = 0.0f;
     yaw_r->integral = 0.0f;
-    yaw_r->max;
-    yaw_r->min;
+    yaw_r->max = ANGLE_MAX;
+    yaw_r->min = ANGLE_MIN;
 }
 
