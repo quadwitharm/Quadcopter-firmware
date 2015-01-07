@@ -5,8 +5,6 @@
 #include "task.h"
 #include "semphr.h"
 
-static xSemaphoreHandle HMC5883L_Lock;
-static bool dataAvailable = false;
 struct HMC5883L HMC5883L;
 
 void Write_HMC5883L(uint8_t Register, uint8_t content){
@@ -24,8 +22,6 @@ void READ_HMC5883L(uint8_t addr,uint8_t buf[], uint8_t size){
 };
 
 void HMC5883L_Init(){
-    HMC5883L_Lock = xSemaphoreCreateMutex();
-
     kputs("Setting Control Register for HMC5883L\r\n");
 
     /* average 8 per measurement output, output data rate is 15Hz */
@@ -41,45 +37,25 @@ void HMC5883L_Init(){
 }
 
 void HMC5883L_Recv(void *arg){
-    while(1){
-        xSemaphoreTake( HMC5883L_Lock, ( portTickType ) portMAX_DELAY );
-        uint8_t READY_STATUS;
+    uint8_t READY_STATUS;
+    do{
         READ_HMC5883L(StatusReg, &READY_STATUS, 1);
+    }while(READY_STATUS & 0b00000010);
 
-        /* Data not available yet */
-        if(READY_STATUS & 0b00000010){
-            xSemaphoreGive( HMC5883L_Lock );
-            continue;
-        }
+    uint8_t tmpbuff[6];
+    READ_HMC5883L(DataXMSB, tmpbuff, 6);
 
-	uint8_t tmpbuff[6] = { 0 };
-	READ_HMC5883L(DataXMSB, tmpbuff, 6);
+    HMC5883L.uint8.XH = tmpbuff[0];
+    HMC5883L.uint8.XL = tmpbuff[1];
 
-	HMC5883L.uint8.XH = tmpbuff[0];
-	HMC5883L.uint8.XL = tmpbuff[1];
+    HMC5883L.uint8.YH = tmpbuff[2];
+    HMC5883L.uint8.YL = tmpbuff[3];
 
-	HMC5883L.uint8.YH = tmpbuff[2];
-	HMC5883L.uint8.YL = tmpbuff[3];
+    HMC5883L.uint8.ZH = tmpbuff[4];
+    HMC5883L.uint8.ZL = tmpbuff[5];
 
-	HMC5883L.uint8.ZH = tmpbuff[4];
-	HMC5883L.uint8.ZL = tmpbuff[5];
+    /* single-measurement mode */
+    Write_HMC5883L(ModeReg, 0b00000001);
 
-    	/* single-measurement mode */
-    	Write_HMC5883L(ModeReg, 0b00000001);
-
-        dataAvailable = true;
-        xSemaphoreGive( HMC5883L_Lock );
-    }
-}
-void HMC5883L_Process(void *arg){
-    xSemaphoreTake( HMC5883L_Lock, ( portTickType ) portMAX_DELAY );
-
-    /* Assume data will be proccessed before next read to data */
-    if(!dataAvailable){
-        xSemaphoreGive( HMC5883L_Lock );
-        return;
-    }
-    dataAvailable = false;
-
-    xSemaphoreGive( HMC5883L_Lock );
+    setDataReady(HMC58831_DRDY_BIT);
 }

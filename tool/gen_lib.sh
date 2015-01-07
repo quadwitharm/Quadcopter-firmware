@@ -1,0 +1,10 @@
+arm-none-eabi-ar -r -c -s lib/BasicMathFunctions.a build/STM32Cube/Drivers/CMSIS/DSP_Lib/Source/BasicMathFunctions/*.o
+arm-none-eabi-ar -r -c -s lib/CommonTables.a build/STM32Cube/Drivers/CMSIS/DSP_Lib/Source/CommonTables/*.o
+arm-none-eabi-ar -r -c -s lib/ComplexMathFunctions.a build/STM32Cube/Drivers/CMSIS/DSP_Lib/Source/ComplexMathFunctions/*.o
+arm-none-eabi-ar -r -c -s lib/ControllerFunctions.a build/STM32Cube/Drivers/CMSIS/DSP_Lib/Source/ControllerFunctions/*.o
+arm-none-eabi-ar -r -c -s lib/FastMathFunctions.a build/STM32Cube/Drivers/CMSIS/DSP_Lib/Source/FastMathFunctions/*.o
+arm-none-eabi-ar -r -c -s lib/FilteringFunctions.a build/STM32Cube/Drivers/CMSIS/DSP_Lib/Source/FilteringFunctions/*.o
+arm-none-eabi-ar -r -c -s lib/MatrixFunctions.a build/STM32Cube/Drivers/CMSIS/DSP_Lib/Source/MatrixFunctions/*.o
+arm-none-eabi-ar -r -c -s lib/StatisticsFunctions.a build/STM32Cube/Drivers/CMSIS/DSP_Lib/Source/StatisticsFunctions/*.o
+arm-none-eabi-ar -r -c -s lib/SupportFunctions.a build/STM32Cube/Drivers/CMSIS/DSP_Lib/Source/SupportFunctions/*.o
+arm-none-eabi-ar -r -c -s lib/TransformFunctions.a build/STM32Cube/Drivers/CMSIS/DSP_Lib/Source/TransformFunctions/*.o
