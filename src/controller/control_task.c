@@ -10,40 +10,59 @@ static void ControllerUpdate(void);
 
 pid_context_t pid_roll, pid_pitch, pid_yaw;
 pid_context_t pid_roll_r, pid_pitch_r, pid_yaw_r;
-static float mFR,mBL,mFL,mBR;
+/*static*/ float mFR,mBL,mFL,mBR;
 
 float setPoint[NUM_AXIS] = {};
 bool controllerUpdate = true;
 
+static xTaskHandle controllerTaskHandle;
+
 bool Init_Controller(){
+    // Initialize PID structures
+    stablize_pid_init(&pid_roll, &pid_pitch, &pid_yaw);
+    rate_pid_init(&pid_roll_r, &pid_pitch_r, &pid_yaw_r);
+
+    // FreeRTOS Task
     bool ret = xTaskCreate(Controller_Task,
             (portCHAR *)"ControllerTask",
             512,
             NULL,
             tskIDLE_PRIORITY + 2,
-            NULL);
+            &controllerTaskHandle);
     if(ret != pdPASS)return false;
     return ret;
 }
 
+extern TIM_HandleTypeDef TIM2_Handle;
+void TIM2_IRQHandler(void){
+    kputs("TIM2 INT:");
+    /* TIM Update event */
+    if(__HAL_TIM_GET_FLAG(&TIM2_Handle, TIM_FLAG_UPDATE) != RESET) {
+        if(__HAL_TIM_GET_ITSTATUS(&TIM2_Handle, TIM_IT_UPDATE) !=RESET) {
+            __HAL_TIM_CLEAR_IT(&TIM2_Handle, TIM_IT_UPDATE);
+            xTaskResumeFromISR(controllerTaskHandle);
+        }
+    }
+}
 static void Controller_Task(void *args){
-    TickType_t lastWakeTime;
-    lastWakeTime = xTaskGetTickCount();
-
-    // Initialize PID structures
-    stablize_pid_init(&pid_roll, &pid_pitch, &pid_yaw);
-    rate_pid_init(&pid_roll_r, &pid_pitch_r, &pid_yaw_r);
-
+    int count = 0;
+    HAL_NVIC_EnableIRQ(TIM2_IRQn);
     while(1){
-        // TODO: use timer to generate more precisely frequency
-        vTaskDelayUntil(&lastWakeTime, (const TickType_t)1000 / 60);
         if( !controllerUpdate ) continue;
-
+        puts("Controller Update.\r\n");
         ControllerUpdate();
 
         UpdateMotorSpeed( (float []){ mFR, mFL, mBL, mBR } );
+
+        // Timer interrupt will wake up this task
+        vTaskSuspend(controllerTaskHandle);
     }
 }
+
+#define SCALE(var,min,max) do{\
+    if(var > max)var = max;\
+    else if(var < min)var = min;\
+}while(0)
 
 static void ControllerUpdate(){
     // Read data, TODO: protect the data
@@ -74,4 +93,10 @@ static void ControllerUpdate(){
     mFL = - roll_out - pitch_out - yaw_out;
     mBR = + roll_out + pitch_out - yaw_out;
     mBL = - roll_out + pitch_out + yaw_out;
+
+    // scale output
+    SCALE(mFR,0,1);
+    SCALE(mFL,0,1);
+    SCALE(mBR,0,1);
+    SCALE(mBL,0,1);
 }
