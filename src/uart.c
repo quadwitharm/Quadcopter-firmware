@@ -1,7 +1,11 @@
 #include "uart.h"
+#include "clib.h"
+#include "semphr.h"
+#include "task.h"
 
 UART_HandleTypeDef UartHandle;
-__IO ITStatus UartReady = RESET;
+volatile xSemaphoreHandle _tx_wait_sem = NULL;
+volatile xSemaphoreHandle _rx_wait_sem = NULL;
 
 HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate){
     UartHandle = (UART_HandleTypeDef) {
@@ -14,62 +18,67 @@ HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate){
             .Mode = UART_MODE_TX_RX
         }
     };
+    _rx_wait_sem = xSemaphoreCreateBinary();
+    _tx_wait_sem = xSemaphoreCreateBinary();
     return HAL_UART_Init(&UartHandle);
 }
 
 HAL_StatusTypeDef UART_send(uint8_t* data, uint16_t length){//blocking call
-    HAL_StatusTypeDef status;
-    UartReady = RESET;
-    status = HAL_UART_Transmit(&UartHandle, data, length, 10000);
-    if(status != HAL_OK)
-        return status;
-    return HAL_OK;
+    HAL_StatusTypeDef status = HAL_UART_Transmit(&UartHandle, data, length, 10000);
+    return status;
 }
 
 HAL_StatusTypeDef UART_recv(uint8_t* buffer, uint16_t length){
-    HAL_StatusTypeDef status;
-    UartReady = RESET;
-    status = HAL_UART_Receive(&UartHandle, (uint8_t *)buffer, length, 10000);
-    if(status != HAL_OK)
-        return status;
-    return HAL_OK;
+    HAL_StatusTypeDef status = HAL_UART_Receive(&UartHandle, (uint8_t *)buffer, length, 10000);
+    return status;
 }
 
-HAL_StatusTypeDef UART_send_IT(uint8_t* data, uint16_t length){
-    HAL_StatusTypeDef status;
-    UartReady = RESET;
-    status = HAL_UART_Transmit_IT(&UartHandle, data, length);
-    if(status != HAL_OK)
-        return status;
-    while(UartReady != SET);
-    return HAL_OK;
+void UART_send_IT(uint8_t* data, uint16_t length){
+    HAL_UART_Transmit_IT(&UartHandle, data, length);
+    while (!xSemaphoreTake(_tx_wait_sem, portMAX_DELAY));
 }
 
-HAL_StatusTypeDef UART_recv_IT(uint8_t* buffer, uint16_t length){
-    HAL_StatusTypeDef status;
-    UartReady = RESET;
-    status = HAL_UART_Receive_IT(&UartHandle, (uint8_t *)buffer, length);
-    if(status != HAL_OK)
-        return status;
-    while(UartReady != SET);
-    return HAL_OK;
+void UART_recv_IT(uint8_t* buffer, uint16_t length){
+    HAL_UART_Receive_IT(&UartHandle, buffer, length);
+    while (!xSemaphoreTake(_rx_wait_sem, portMAX_DELAY));
 }
 
+void send_byte(char ch){
+    UART_send_IT((uint8_t *)&ch,1);
+}
+
+char recv_byte(){
+    char msg;
+    UART_recv_IT((uint8_t *)&msg,1);
+    return msg;
+}
+
+/**
+ * @brief  Tx Transfer completed callback
+ * @param  UartHandle: UART handle
+ * @retval None
+ */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle){
+    static signed portBASE_TYPE xHigherPriorityTaskWoken;
     /* Set transmission flag: trasfer complete*/
-    UartReady = SET;
+    xSemaphoreGiveFromISR(_tx_wait_sem, &xHigherPriorityTaskWoken);
+    if (xHigherPriorityTaskWoken) {
+        taskYIELD();
+    }
 }
 
 /**
  * @brief  Rx Transfer completed callback
  * @param  UartHandle: UART handle
- * @note   This example shows a simple way to report end of IT Rx transfer, and
- *         you can add your own implementation.
  * @retval None
  */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
+    static signed portBASE_TYPE xHigherPriorityTaskWoken;
     /* Set transmission flag: trasfer complete*/
-    UartReady = SET;
+    xSemaphoreGiveFromISR(_rx_wait_sem, &xHigherPriorityTaskWoken);
+    if (xHigherPriorityTaskWoken) {
+        taskYIELD();
+    }
 }
 
 void HAL_UART_MspInit(UART_HandleTypeDef *huart){
@@ -84,7 +93,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
         GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
         HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-        HAL_NVIC_SetPriority(USART1_IRQn, 0, 1);
+        HAL_NVIC_SetPriority(USART1_IRQn, 9, 0);
         HAL_NVIC_EnableIRQ(USART1_IRQn);
     }else if(huart->Instance == USART2){// tx/rx: PA2/PA3, PD5/PD6
         __USART2_CLK_ENABLE();
@@ -233,15 +242,4 @@ void UART7_IRQHandler(void){
 }
 void UART8_IRQHandler(void){
     HAL_UART_IRQHandler(&UartHandle);
-}
-
-void send_byte(char ch){
-    UART_send/*_IT*/((uint8_t *)&ch,1);
-}
-
-char recv_byte(){
-//    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-    char msg;
-    UART_recv/*_IT*/((uint8_t *)&msg,1);
-    return msg;
 }

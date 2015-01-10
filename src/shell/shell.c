@@ -2,6 +2,7 @@
 #include "task.h"
 
 #include "sensor/sensor.h"
+#include "uart.h"
 
 #define BUFSIZE 128
 #define ARGV_SIZE 20
@@ -37,6 +38,8 @@ bool InitShell(){
 static void ShellTask(void *args){
     char line[BUFSIZE];
     char *argv[ARGV_SIZE];
+    // Interrupt based I/O
+    puts("Welcome to quadcopter shell!\r\n");
     while(1){
         puts( COMMAND_PROMPT );
         gets(line, BUFSIZE);
@@ -85,24 +88,26 @@ static commandfunc_t findCommand(char *name){
 
 static int help_command(int argc, char **argv){
     for(int i = 0;i < sizeof(CommandList) / sizeof(CommandList[0]);++i){
-        printf("%s : %s\r\n", CommandList[i].name, CommandList[i].description);
+        printf("[%s] : %s\r\n", CommandList[i].name, CommandList[i].description);
     }
     return 0;
 }
 
 static int echo_command(int argc, char **argv){
     for(int i = 1;i < argc;++i){
-        printf("[%s] ",argv[i]);
+        printf("%s ",argv[i]);
     }
     printf("\r\n");
     return 0;
 }
 
+extern float mFR,mBL,mFL,mBR;
 static int current_attitude_command(int argc, char **argv){
     int max = 100; /* default is 100 */
     if(argc == 2) max = atoi(argv[1]);
     for(int i = 0;i < max;++i){
-        kprintf("%f,%f,%f\r\n",xAttitude.roll,xAttitude.pitch,xAttitude.yaw);
+        kprintf("%f,%f,%f,",xAttitude.roll,xAttitude.pitch,xAttitude.yaw);
+        kprintf("%f,%f,%f,%f\r\n",mFR,mBL,mFL,mBR);
         vTaskDelay(20);
     }
     return 0;

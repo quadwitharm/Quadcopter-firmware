@@ -64,9 +64,9 @@ bool Init_Motor(){
 
 
     kputs("Wait ESC to be initialized\r\n");
-    for(int i = 0 ; i < 100000000;++i);
+//    for(int i = 0 ; i < 100000000;++i);
 
-    HAL_NVIC_SetPriority(TIM2_IRQn, 3, 3);
+    HAL_NVIC_SetPriority(TIM2_IRQn, 10, 0);
     HAL_TIM_Base_Start_IT(&TIM2_Handle);
 
     kputs("Initialized TIM\r\n");

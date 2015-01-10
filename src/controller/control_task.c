@@ -35,23 +35,22 @@ bool Init_Controller(){
 
 extern TIM_HandleTypeDef TIM2_Handle;
 void TIM2_IRQHandler(void){
-    kputs("TIM2 INT:");
     /* TIM Update event */
     if(__HAL_TIM_GET_FLAG(&TIM2_Handle, TIM_FLAG_UPDATE) != RESET) {
         if(__HAL_TIM_GET_ITSTATUS(&TIM2_Handle, TIM_IT_UPDATE) !=RESET) {
             __HAL_TIM_CLEAR_IT(&TIM2_Handle, TIM_IT_UPDATE);
-            xTaskResumeFromISR(controllerTaskHandle);
+            if(pdTRUE == xTaskResumeFromISR(controllerTaskHandle)){
+                taskYIELD();
+            }
         }
     }
 }
 static void Controller_Task(void *args){
-    int count = 0;
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
     while(1){
         if( !controllerUpdate ) continue;
-        puts("Controller Update.\r\n");
-        ControllerUpdate();
 
+        ControllerUpdate();
         UpdateMotorSpeed( (float []){ mFR, mFL, mBL, mBR } );
 
         // Timer interrupt will wake up this task
