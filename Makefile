@@ -72,6 +72,13 @@ debug: $(EXECUTABLE)
 	st-util &
 	$(GDB) -x $(TOOLDIR)/gdbscript
 
+openocd_debug: $(EXECUTABLE)
+	openocd -f board/stm32f429discovery.cfg >/dev/null & \
+	echo $$! > $(OUTDIR)/openocd_pid && \
+	$(CROSS_COMPILE)gdb -x $(TOOLDIR)/gdbscript_openocd && \
+	cat $(OUTDIR)/openocd_pid |`xargs kill 2>/dev/null || test true` && \
+	rm -f $(OUTDIR)/openocd_pid
+
 clang_complete:
 	echo "$(INCLUDES) -std=c++11 -DSTM32F429xx -Wdeprecated-register" > .clang_complete_test
 
