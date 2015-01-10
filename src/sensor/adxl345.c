@@ -34,8 +34,8 @@ void ADXL345_Init(){
     /* Bypass mode */
     Write_ADXL345(FIFO_CTL   , 0b00000000);
 
-    /* Output data rate 100Hz */
-    Write_ADXL345(BW_RATE    , 0b00001100);
+    /* Output data rate 800Hz */
+    Write_ADXL345(BW_RATE    , 0b00001101);
 
     /* Measurement mode */
     Write_ADXL345(POWER_CTL  , 0b00001000);
