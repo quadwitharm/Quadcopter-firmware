@@ -1,5 +1,10 @@
 #include "motor.h"
 
+#include "task.h"
+#include "semphr.h"
+
+#include "stm32f4xx_hal_tim.h"
+
 #define GPIO_PIN_CHANNEL1 GPIO_PIN_0  // PA0
 #define GPIO_PIN_CHANNEL2 GPIO_PIN_3  // PB3
 #define GPIO_PIN_CHANNEL3 GPIO_PIN_10 // PB10
@@ -18,18 +23,9 @@
 #endif
 
 
-static TIM_HandleTypeDef TIM2_Handle;
+TIM_HandleTypeDef TIM2_Handle;
 static TIM_OC_InitTypeDef OCConfig;
 static TIM_ClockConfigTypeDef ClockSourceConfig;
-static void MotorTask(void *);
-
-xSemaphoreHandle MotorSem;
-struct MotorSpeed MotorSpeed = {
-    .motor1 = 0.5f,
-    .motor2 = 0.5f,
-    .motor3 = 0.5f,
-    .motor4 = 0.5f,
-};
 
 bool Init_Motor(){
     HAL_StatusTypeDef status = HAL_OK;
@@ -60,62 +56,37 @@ bool Init_Motor(){
     status = HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_2);
     status = HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_3);
     status = HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_4);
-    if( HAL_OK != status ){ return false; }
 
     status = HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_1);
     status = HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_2);
     status = HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_3);
     status = HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_4);
-    if( HAL_OK != status ){ return false; }
 
-    /* Task to update PWM duty cycle */
-    xTaskCreate(MotorTask,
-            (signed portCHAR *)"Motor control proccess",
-            512,
-            NULL,
-            tskIDLE_PRIORITY + 2,
-            NULL);
-    MotorSem = xSemaphoreCreateMutex();
+
+    kputs("Wait ESC to be initialized\r\n");
+//    for(int i = 0 ; i < 100000000;++i);
+
+    HAL_NVIC_SetPriority(TIM2_IRQn, 10, 0);
+    HAL_TIM_Base_Start_IT(&TIM2_Handle);
 
     kputs("Initialized TIM\r\n");
     return true;
 }
 
-void lockMotorMutex(){
-    xSemaphoreTake(MotorSem, portMAX_DELAY);
-}
+void UpdateMotorSpeed(float speed[4]){
+    OCConfig.Pulse = PULSE(speed[0]);
+    HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_1);
+    OCConfig.Pulse = PULSE(speed[1]);
+    HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_2);
+    OCConfig.Pulse = PULSE(speed[2]);
+    HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_3);
+    OCConfig.Pulse = PULSE(speed[3]);
+    HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_4);
 
-void unlockMotorMutex(){
-    xSemaphoreGive(MotorSem);
-}
-
-static void MotorTask(void *arg){
-    /* Wait motor to be ready */
-    for(int i = 0 ; i < 100000000;++i);
-    while(1){
-        /* For ESC: 90000 ~ 180000 */
-
-        lockMotorMutex();
-
-        OCConfig.Pulse = PULSE(MotorSpeed.motor1);
-        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_1);
-        OCConfig.Pulse = PULSE(MotorSpeed.motor2);
-        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_2);
-        OCConfig.Pulse = PULSE(MotorSpeed.motor3);
-        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_3);
-        OCConfig.Pulse = PULSE(MotorSpeed.motor4);
-        HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_4);
-
-        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_1);
-        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_2);
-        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_3);
-        HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_4);
-
-        unlockMotorMutex();
-
-        /* TODO: Use timer to delay */
-        for(int i = 0 ; i < 1000000;++i);
-    }
+    HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_3);
+    HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_4);
 }
 
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){

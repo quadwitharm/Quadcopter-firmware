@@ -1,7 +1,7 @@
 #ifndef __I2C_H__
 #define __I2C_H__
 
-#include "main.h"
+#include "clib.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
 
@@ -29,5 +29,9 @@ bool I2C_Master_Receive(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
 #define I2Cx_EV_IRQHandler              I2C1_EV_IRQHandler
 #define I2Cx_ER_IRQn                    I2C1_ER_IRQn
 #define I2Cx_ER_IRQHandler              I2C1_ER_IRQHandler
+
+/* Definition for 3V */
+#define I2Cx_POWER_PIN			GPIO_PIN_13
+#define I2Cx_POWER_GPIO_PORT		GPIOG
 
 #endif

@@ -1,7 +1,7 @@
 
 #include <string.h>
 #include "cmsis_os.h"
-
+#include "task.h"
 
 /* Convert from CMSIS type osPriority to FreeRTOS priority number */
 static unsigned portBASE_TYPE makeFreeRtosPriority (osPriority priority)
@@ -109,7 +109,7 @@ osThreadId osThreadCreate (osThreadDef_t *thread_def, void *argument)
   
   
   xTaskCreate((pdTASK_CODE)thread_def->pthread,
-              (const signed portCHAR *)thread_def->name,
+              (const portCHAR *)thread_def->name,
               thread_def->stacksize,
               argument,
               makeFreeRtosPriority(thread_def->tpriority),
@@ -236,7 +236,7 @@ osEvent osWait (uint32_t millisec);
 osTimerId osTimerCreate (osTimerDef_t *timer_def, os_timer_type type, void *argument)
 {
 #if (configUSE_TIMERS == 1)
-  return xTimerCreate((const signed char *)"",
+  return xTimerCreate((const char *)"",
                       1, // period should be filled when starting the Timer using osTimerStart
                       (type == osTimerPeriodic) ? pdTRUE : pdFALSE,
                       (void *) argument,
@@ -1118,7 +1118,7 @@ osStatus osThreadResumeAll (void)
 osStatus osThreadIsSuspended(osThreadId thread_id)
 {
 #if (INCLUDE_vTaskSuspend == 1)
-  if (xTaskIsTaskSuspended(thread_id) != pdFALSE)
+  if (eTaskGetState(thread_id) == eSuspended)
     return osOK;
   else
     return osErrorOS;
@@ -1160,7 +1160,7 @@ osStatus osDelayUntil (uint32_t PreviousWakeTime, uint32_t millisec)
 osStatus osThreadList (int8_t *buffer)
 {
 #if ( ( configUSE_TRACE_FACILITY == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS == 1 ) )
-  vTaskList(buffer);
+  vTaskList((char *)buffer);
 #endif
   return osOK;
 }

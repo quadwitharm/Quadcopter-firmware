@@ -1,4 +1,7 @@
-#include "main.h"
+#include "clib.h"
+
+#include <stdarg.h>
+
 #include "uart.h"
 #ifdef  USE_FULL_ASSERT
 /**
@@ -12,8 +15,12 @@ void assert_failed(uint8_t* file, uint32_t line){
     /* Infinite loop */
     while (1);
 }
-
 #endif
+
+/*
+ * Not include stdio.h because of conflict of function name.
+ */
+int vsnprintf (char * s, size_t n, const char * format, va_list arg );
 
 /**
  * @brief  k* I/O is for debugging, not interrupt based.
@@ -42,6 +49,17 @@ char kgetc(){
     UART_recv((uint8_t *)&msg,1);
     return msg;
 }
+int kprintf(const char *format, ...){
+    char outbuf[128];
+    va_list args;
+    va_start(args,format);
+    int ret = vsnprintf(outbuf,128,format,args);
+    kputs(outbuf);
+    va_end(args);
+    return ret;
+}
+
+
 
 /**
  * @brief  Interrupt based I/O
@@ -58,15 +76,28 @@ void gets(char buf[],int len){
     int i = 0;
     while(i < len - 1){
         buf[i] = recv_byte();
-        ++i;
-        if(buf[i] == '\n'){
+        putc(buf[i]);
+        if(buf[i] == '\r'){
+            putc('\n');
             break;
         }
+        ++i;
     }
     buf[i] = '\0';
 }
 char getc(){
-    return recv_byte();
+    char ch = recv_byte();
+    putc(ch);
+    return ch;
+}
+int printf(const char *format, ...){
+    char outbuf[128];
+    va_list args;
+    va_start(args,format);
+    int ret = vsnprintf(outbuf,128,format,args);
+    puts(outbuf);
+    va_end(args);
+    return ret;
 }
 
 
@@ -93,30 +124,3 @@ void printBinary_uint32(uint32_t c){
     }
     kputc(' ');
 }
-
-void printFloat(float a){
-    if(a < 0){ kputs("-"); a = -a;}else{kputs(" ");}
-    kputs(itoa(a, 10));
-    kputs(".");
-    kputs( itoa( (100000 * a - 100000 * (int)a ) ,10) );
-}
-
-/* TODO: use external buffer */
-char *itoa(int num, unsigned int base){
-    static char buf[32]={0};
-    int i;
-    if(num==0){
-        buf[30]='0';
-        return &buf[30];
-    }
-    int negative=(num<0);
-    if(negative) num=-num;
-    for(i=30; i>=0&&num; --i, num/=base)
-        buf[i] = "0123456789ABCDEF"[num % base];
-    if(negative){
-        buf[i]='-';
-        --i;
-    }
-    return buf+i+1;
-}
-

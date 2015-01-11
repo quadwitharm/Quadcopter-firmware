@@ -4,15 +4,25 @@
 extern "C" {
 #endif
 
-#include "main.h"
+#include "clib.h"
     struct ADXL345{
-        uint8_t XH;
-        uint8_t XL;
-        uint8_t YH;
-        uint8_t YL;
-        uint8_t ZH;
-        uint8_t ZL;
+        union{
+            struct{
+                uint8_t XL;
+                uint8_t XH;
+                uint8_t YL;
+                uint8_t YH;
+                uint8_t ZL;
+                uint8_t ZH;
+            }uint8;
+            struct{
+                int16_t X;
+                int16_t Y;
+                int16_t Z;
+            }int16;
+        };
     };
+    extern struct ADXL345 ADXL345;
 
     void ADXL345_Init();
     void ADXL345_Recv(void*);

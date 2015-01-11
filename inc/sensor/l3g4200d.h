@@ -4,7 +4,8 @@
 extern "C" {
 #endif
 
-#include "main.h"
+#include "clib.h"
+
     struct L3G4200D{
         union{
             struct{
@@ -22,6 +23,7 @@ extern "C" {
             }int16;
         };
     };
+    extern struct L3G4200D L3G4200D;
 
     void L3G4200D_Init();
     void L3G4200D_Recv(void*);

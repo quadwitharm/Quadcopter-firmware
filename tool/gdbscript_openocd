@@ -1,0 +1,7 @@
+file build/main.elf
+target extended-remote localhost:3333
+monitor reset
+monitor halt
+b HardFault_Handler
+layout asm
+layout reg

@@ -1,4 +1,4 @@
-#include "main.h"
+#include "clib.h"
 
 #include "stm32f4xx_hal.h"
 
@@ -7,35 +7,38 @@
 
 #include "rcc.h"
 #include "uart.h"
-#include "sensor/sensor.h"
 #include "motor.h"
+
+#include "sensor/sensor.h"
+#include "controller/control_task.h"
+#include "shell/shell.h"
 
 int main(void){
     HAL_Init();
     SystemClock_Config();
 
     if(UART_init(USART1,115200) != HAL_OK){
-        // Something wrong
+        /* Something wrong, Freeze */
+        while(1);
     }
     kputs("USART test\r\n");
 
-    __GPIOG_CLK_ENABLE();
-    GPIO_InitTypeDef GPIO_G;
-    GPIO_G.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_G.Pull = GPIO_PULLUP;
-    GPIO_G.Pin = GPIO_PIN_13;
-    GPIO_G.Speed = GPIO_SPEED_HIGH;
-    HAL_GPIO_Init(GPIOG, &GPIO_G);
-    HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
-
-
     if(!InitSensorPeriph() || !InitSensorTask()){
-        kputs("Initialze sensor task failed!");
+        kputs("Initialize sensor task failed!\r\n");
     }
     if(!Init_Motor()){
-        kputs("Initialze motor task failed!");
+        kputs("Initialize motor failed!\r\n");
     }
+    if(!Init_Controller()){
+        kputs("Initialize controller task failed!\r\n");
+    }
+    if(!InitShell()){
+        kputs("Initialize shell task failed!\r\n");
+    }
+
+    kputs("Initialization complete, Start schedular!\r\n");
     vTaskStartScheduler();
 
+    /* Should not reach here */
     while(1);
 }
