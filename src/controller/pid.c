@@ -1,8 +1,14 @@
-#include "pid.h"
+#include "controller/pid.h"
 
-//control loop is has fixed frequency ,use constant dt for pid
+//control loop has fixed frequency ,use constant dt for pid
 #define FREQUENCY 60.0f
 #define DT (1.0/FREQUENCY)
+//angle range for stabilization pid
+#define MAX_ANGLE 180.0
+#define MIN_ANGLE -180.0
+//output range for angle rate pid to mortor
+#define MAX_ROUT 0.3
+#define MIN_ROUT 0.0
 
 float _runPID(pid_context_t * p,float error,float diff){
 
@@ -31,7 +37,7 @@ float runPID(pid_context_t * p,float setpoint,float input){
     float diff = input - p->prev_in;
 
     p->prev_in = input;
-    return _runPID(&p, setpoint - input, diff);
+    return _runPID(p, setpoint - input, diff);
 }
 
 float runPID_warp(pid_context_t * p,float setpoint,float input,
@@ -44,73 +50,73 @@ float runPID_warp(pid_context_t * p,float setpoint,float input,
     //warp the values
     if(error > warp_max){
         error -= range;
-    else if(error < warp_min){
+    }else if(error < warp_min){
         error += range;
     }
 
     if(diff > warp_max){
         diff -= range;
-    else if(diff < warp_min){
+    }else if(diff < warp_min){
         diff += range;
     }
 
     p->prev_in = input;
-    return _doPID(&p,error,diff);
+    return _runPID(p,error,diff);
 }
 
 void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,
     pid_context_t *yaw){
 
-    roll->kp;
-    roll->ki;
-    roll->kd;
-    roll->prev_in = 0.0f;
-    roll->integral = 0.0f;
-    roll->max;
-    roll->min;
+    roll->kp = 0.0;
+    roll->ki = 0.0;
+    roll->kd = 0.0;
+    roll->prev_in = 0.0;
+    roll->integral = 0.0;
+    roll->max = MAX_ANGLE;
+    roll->min = MIN_ANGLE;
 
-    pitch->kp;
-    pitch->ki;
-    pitch->kd;
-    pitch->prev_in = 0.0f;
-    pitch->integral = 0.0f;
-    pitch->max;
-    pitch->min;
+    pitch->kp = 0.0;
+    pitch->ki = 0.0;
+    pitch->kd = 0.0;
+    pitch->prev_in = 0.0;
+    pitch->integral = 0.0;
+    pitch->max = MAX_ANGLE;
+    pitch->min = MIN_ANGLE;
 
-    yaw->kp;
-    yaw->ki;
-    yaw->kd;
-    yaw->prev_in = 0.0f;
-    yaw->integral = 0.0f;
-    yaw->max;
-    yaw->min;
+    yaw->kp = 0.0;
+    yaw->ki = 0.0;
+    yaw->kd = 0.0;
+    yaw->prev_in = 0.0;
+    yaw->integral = 0.0;
+    yaw->max = MAX_ANGLE;
+    yaw->min = MIN_ANGLE;
 }
 
 void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,
     pid_context_t *yaw_r){
 
-    roll_r->kp;
-    roll_r->ki;
-    roll_r->kd;
-    roll_r->prev_in = 0.0f;
-    roll_r->integral = 0.0f;
-    roll->max;
-    roll->min;
+    roll_r->kp = 0.0;
+    roll_r->ki = 0.0;
+    roll_r->kd = 0.0;
+    roll_r->prev_in = 0.0;
+    roll_r->integral = 0.0;
+    roll_r->max = MAX_ROUT;
+    roll_r->min = MIN_ROUT;
 
-    pitch_r->kp;
-    pitch_r->ki;
-    pitch_r->kd;
-    pitch_r->prev_in = 0.0f;
-    pitch_r->integral = 0.0f;
-    pitch_r->max;
-    pitch_r->min;
+    pitch_r->kp = 0.0;
+    pitch_r->ki = 0.0;
+    pitch_r->kd = 0.0;
+    pitch_r->prev_in = 0.0;
+    pitch_r->integral = 0.0;
+    pitch_r->max = MAX_ROUT;
+    pitch_r->min = MIN_ROUT;
 
-    yaw_r->kp;
-    yaw_r->ki;
-    yaw_r->kd;
-    yaw_r->prev_in = 0.0f;
-    yaw_r->integral = 0.0f;
-    yaw_r->max;
-    yaw_r->min;
+    yaw_r->kp = 0.0;
+    yaw_r->ki = 0.0;
+    yaw_r->kd = 0.0;
+    yaw_r->prev_in = 0.0;
+    yaw_r->integral = 0.0;
+    yaw_r->max = MAX_ROUT;
+    yaw_r->min = MIN_ROUT;
 }
 
