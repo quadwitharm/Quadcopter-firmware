@@ -16,6 +16,16 @@ struct Vector3D{
     float z;
 };
 
+struct KalmanParameter{
+    float angle;
+    float bias;
+    float rate;
+    float Q_angle;
+    float Q_bias;
+    float R_measure;
+    float P[2][2];
+};
+
 extern struct Angle3D xAttitude;
 extern struct Angle3D lastAngularSpeed;
 

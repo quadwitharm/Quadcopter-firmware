@@ -11,6 +11,10 @@ EventGroupHandle_t xDataReady;
 xTaskHandle recvTaskHandle;
 xTaskHandle processTaskHandle;
 
+/* Kalman Filter */
+struct KalmanParameter Kroll;
+struct KalmanParameter Kpitch;
+
 /* Definition of shared resource */
 struct Angle3D xAttitude;
 struct Angle3D lastAngularSpeed;
@@ -96,6 +100,76 @@ struct Angle3D ComplementaryFilter(struct Angle3D *gyro,struct Angle3D *fix){
     };
 }
 
+struct Angle3D KalmanFilter(struct Angle3D *gyro, struct Angle3D *newDataRate, float dt){
+
+    /* Step 1 */
+    Kroll.rate = newDataRate -> roll - Kroll.bias;
+    Kroll.angle += dt * Kroll.rate;
+
+    Kpitch.rate = newDataRate -> pitch - Kpitch.bias;
+    Kpitch.angle += dt * Kpitch.rate;
+
+    /* Step 2: Update estimation error covariance */
+    Kroll.P[0][0] += dt * (dt * Kroll.P[1][1] - Kroll.P[0][1] - 
+		     Kroll.P[1][0] + Kroll.Q_angle);
+    Kroll.P[0][1] -= dt * Kroll.P[1][1];
+    Kroll.P[1][0] -= dt * Kroll.P[1][1];
+    Kroll.P[1][1] += Kroll.Q_bias * dt;
+
+    Kpitch.P[0][0] += dt * (dt * Kpitch.P[1][1] - Kpitch.P[0][1] - 
+		      Kpitch.P[1][0] + Kpitch.Q_angle);
+    Kpitch.P[0][1] -= dt * Kpitch.P[1][1];
+    Kpitch.P[1][0] -= dt * Kpitch.P[1][1];
+    Kpitch.P[1][1] += Kpitch.Q_bias * dt;
+
+    /* Step 3: Calculate angle and bias */
+    float yroll = gyro -> roll - Kroll.angle;
+    float ypitch = gyro -> pitch - Kroll.angle;
+
+    /* Step 4: Calculate Kalman gain */
+    float Sroll = Kroll.P[0][0] + Kpitch.R_measure;
+    float Spitch = Kpitch.P[0][0] + Kpitch.R_measure;
+
+    /* Step 5 */
+    float kroll[2];
+    kroll[0] = Kroll.P[0][0] / Sroll;
+    kroll[1] = Kroll.P[1][1] / Sroll;
+
+    float kpitch[2];
+    kpitch[0] = Kpitch.P[0][0] / Spitch;
+    kpitch[1] = Kpitch.P[1][1] / Spitch;
+
+    /* Step 6:  */
+    Kroll.angle += kroll[0] * yroll;
+    Kroll.bias += kroll[1] * yroll;
+
+    Kpitch.angle += kpitch[0] * ypitch;
+    Kpitch.bias += kpitch[1] * ypitch;
+
+    /* Step 7: Calculate estimation error covariance */
+    float P00_roll = Kroll.P[0][0];
+    float P01_roll = Kroll.P[0][1];
+
+    Kroll.P[0][0] -= kroll[0] * P00_roll;
+    Kroll.P[0][1] -= kroll[0] * P01_roll;
+    Kroll.P[1][0] -= kroll[0] * P00_roll;
+    Kroll.P[1][1] -= kroll[0] * P01_roll;
+    
+    float P00_pitch = Kpitch.P[0][0];
+    float P01_pitch = Kpitch.P[0][1];
+
+    Kpitch.P[0][0] -= kpitch[0] * P00_pitch;
+    Kpitch.P[0][1] -= kpitch[0] * P01_pitch;
+    Kpitch.P[1][0] -= kpitch[0] * P00_pitch;
+    Kpitch.P[1][1] -= kpitch[0] * P01_pitch;
+
+    return (struct Angle3D){
+        Kroll.angle,
+        Kpitch.angle,
+        gyro -> yaw,
+    };
+}
+
 void ProcessTask(void *arg){
     const float Time = 0.005f;
     const float gyroScale = 0.0074f;
@@ -136,6 +210,7 @@ void ProcessTask(void *arg){
         float x = accel.x * F_inverse;
         float y = accel.y * F_inverse;
         float z = accel.z * F_inverse;
+
         struct Angle3D AccelEstimateAngle = {
             getRoll(x,y,z,gyroEstimateAngle.roll),
             -getPitch(x,y,z,gyroEstimateAngle.pitch),
