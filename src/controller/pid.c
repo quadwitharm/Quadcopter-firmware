@@ -2,13 +2,13 @@
 
 //control loop has fixed frequency ,use constant dt for pid
 #define FREQUENCY 60.0f
-#define DT (1.0/FREQUENCY)
+#define DT (1.0f/FREQUENCY)
 //angle range for stabilization pid
-#define MAX_ANGLE 180.0
-#define MIN_ANGLE -180.0
+#define MAX_ANGLE_RATE 60.0f
+#define MIN_ANGLE_RATE -60.0f
 //output range for angle rate pid to mortor
-#define MAX_ROUT 0.3
-#define MIN_ROUT 0.0
+#define MAX_MOUT 0.3f
+#define MIN_MOUT 0.0f
 
 float _runPID(pid_context_t * p,float error,float diff){
 
@@ -72,24 +72,24 @@ void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,
     roll->kd = 0.0;
     roll->prev_in = 0.0;
     roll->integral = 0.0;
-    roll->max = MAX_ANGLE;
-    roll->min = MIN_ANGLE;
+    roll->max = MAX_ANGLE_RATE;
+    roll->min = MIN_ANGLE_RATE;
 
     pitch->kp = 0.0;
     pitch->ki = 0.0;
     pitch->kd = 0.0;
     pitch->prev_in = 0.0;
     pitch->integral = 0.0;
-    pitch->max = MAX_ANGLE;
-    pitch->min = MIN_ANGLE;
+    pitch->max = MAX_ANGLE_RATE;
+    pitch->min = MIN_ANGLE_RATE;
 
     yaw->kp = 0.0;
     yaw->ki = 0.0;
     yaw->kd = 0.0;
     yaw->prev_in = 0.0;
     yaw->integral = 0.0;
-    yaw->max = MAX_ANGLE;
-    yaw->min = MIN_ANGLE;
+    yaw->max = MAX_ANGLE_RATE;
+    yaw->min = MIN_ANGLE_RATE;
 }
 
 void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,
@@ -100,23 +100,23 @@ void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,
     roll_r->kd = 0.0;
     roll_r->prev_in = 0.0;
     roll_r->integral = 0.0;
-    roll_r->max = MAX_ROUT;
-    roll_r->min = MIN_ROUT;
+    roll_r->max = MAX_MOUT;
+    roll_r->min = MIN_MOUT;
 
     pitch_r->kp = 0.0;
     pitch_r->ki = 0.0;
     pitch_r->kd = 0.0;
     pitch_r->prev_in = 0.0;
     pitch_r->integral = 0.0;
-    pitch_r->max = MAX_ROUT;
-    pitch_r->min = MIN_ROUT;
+    pitch_r->max = MAX_MOUT;
+    pitch_r->min = MIN_MOUT;
 
     yaw_r->kp = 0.0;
     yaw_r->ki = 0.0;
     yaw_r->kd = 0.0;
     yaw_r->prev_in = 0.0;
     yaw_r->integral = 0.0;
-    yaw_r->max = MAX_ROUT;
-    yaw_r->min = MIN_ROUT;
+    yaw_r->max = MAX_MOUT;
+    yaw_r->min = MIN_MOUT;
 }
 
