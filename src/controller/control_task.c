@@ -8,19 +8,18 @@
 static void Controller_Task(void *args);
 static void ControllerUpdate(void);
 
-pid_context_t pid_roll, pid_pitch, pid_yaw;
-pid_context_t pid_roll_r, pid_pitch_r, pid_yaw_r;
-/*static*/ float mFR,mBL,mFL,mBR;
+pid_context_t pids[NUM_AXIS];
+float mFR,mBL,mFL,mBR;
 
 float setPoint[4] = {};
-bool controllerUpdate = true;
+bool controllerEnable = true;
 
 static xTaskHandle controllerTaskHandle;
 
 bool Init_Controller(){
     // Initialize PID structures
-    stablize_pid_init(&pid_roll, &pid_pitch, &pid_yaw);
-    rate_pid_init(&pid_roll_r, &pid_pitch_r, &pid_yaw_r);
+    stablize_pid_init(&pids[ROLL], &pids[PITCH], &pids[YAW]);
+    rate_pid_init(&pids[ROLL_RATE], &pids[PITCH_RATE], &pids[YAW_RATE]);
 
     // FreeRTOS Task
     bool ret = xTaskCreate(Controller_Task,
@@ -48,7 +47,7 @@ void TIM2_IRQHandler(void){
 static void Controller_Task(void *args){
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
     while(1){
-        if( !controllerUpdate ) continue;
+        if( !controllerEnable ) continue;
 
         ControllerUpdate();
         UpdateMotorSpeed( (float []){ mFR, mFL, mBL, mBR } );
@@ -73,10 +72,10 @@ static void ControllerUpdate(){
     float yawRate = lastAngularSpeed.yaw;
 
     // Calculate PIDs
-    float roll_out = runPID(&pid_roll,
-            runPID(&pid_roll_r, setPoint[ROLL], rollRate), sensorRoll);
-    float pitch_out = runPID(&pid_pitch,
-            runPID(&pid_pitch_r, setPoint[PITCH], pitchRate), sensorPitch);
+    float roll_out = runPID(&pids[ROLL],
+            runPID(&pids[ROLL_RATE], setPoint[0], rollRate), sensorRoll);
+    float pitch_out = runPID(&pids[PITCH],
+            runPID(&pids[PITCH_RATE], setPoint[1], pitchRate), sensorPitch);
 
     // Need refactor
 #if 0
@@ -84,13 +83,13 @@ static void ControllerUpdate(){
         yaw_out = runPID(&pid_yaw_r,/**/,/**/);
     }else if(/*stablized mode*/){
 #endif
-       float yaw_out = runPID(&pid_yaw,
-                runPID(&pid_yaw_r, setPoint[YAW], yawRate), sensorYaw);
+       float yaw_out = runPID(&pids[YAW],
+                runPID(&pids[YAW_RATE], setPoint[2], yawRate), sensorYaw);
 #if 0
     }
 #endif
 
-    float throttle = 0.2f;/*should be radio input*/
+    float throttle = setPoint[3];/*should be radio input*/
 
     // Motor output
     mFR = throttle + roll_out - pitch_out + yaw_out;
