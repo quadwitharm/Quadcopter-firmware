@@ -11,12 +11,17 @@ void setPidParameter( enum Axis axis, enum PID_K pid, float value){
         case ROLL : context = &pid_roll; break;
         case PITCH: context = &pid_pitch;break;
         case YAW  : context = &pid_yaw;  break;
+        case ROLL_RATE : context = &pid_roll_r; break;
+        case PITCH_RATE: context = &pid_pitch_r;break;
+        case YAW_RATE  : context = &pid_yaw_r;  break;
         default:;
     }
     switch( pid ){
         case KP: context->kp = value;break;
         case KI: context->ki = value;break;
         case KD: context->kd = value;break;
+        case MAX: context->max = value;break;
+        case MIN: context->min = value;break;
         default:;
     }
 }

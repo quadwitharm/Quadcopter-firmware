@@ -74,7 +74,7 @@ static void ControllerUpdate(){
 
     // Calculate PIDs
     float roll_out = runPID(&pid_roll,
-            runPID(&pid_roll_r, setPoint[ROLL], rollRate), sensorPitch);
+            runPID(&pid_roll_r, setPoint[ROLL], rollRate), sensorRoll);
     float pitch_out = runPID(&pid_pitch,
             runPID(&pid_pitch_r, setPoint[PITCH], pitchRate), sensorPitch);
 
@@ -90,11 +90,13 @@ static void ControllerUpdate(){
     }
 #endif
 
+    float throttle = 0.2f;/*should be radio input*/
+
     // Motor output
-    mFR = + roll_out - pitch_out + yaw_out;
-    mFL = - roll_out - pitch_out - yaw_out;
-    mBR = + roll_out + pitch_out - yaw_out;
-    mBL = - roll_out + pitch_out + yaw_out;
+    mFR = throttle + roll_out - pitch_out + yaw_out;
+    mFL = throttle - roll_out - pitch_out - yaw_out;
+    mBR = throttle + roll_out + pitch_out - yaw_out;
+    mBL = throttle - roll_out + pitch_out + yaw_out;
 
     // scale output
     SCALE(mFR,0,1);

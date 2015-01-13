@@ -3,8 +3,9 @@
 
 #include "clib.h"
 
-enum Axis{ ROLL, PITCH, YAW, X, Y, Z, NUM_AXIS };
-enum PID_K{ KP, KI, KD };
+enum Axis{ ROLL, PITCH, YAW, ROLL_RATE, PITCH_RATE, YAW_RATE,
+         X, Y, Z, NUM_AXIS };
+enum PID_K{ KP, KI, KD, MAX, MIN };
 
 void setPidParameter( enum Axis, enum PID_K, float );
 void setSetPoint( enum Axis, float );
