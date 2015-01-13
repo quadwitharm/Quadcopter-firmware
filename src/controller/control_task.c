@@ -68,12 +68,15 @@ static void ControllerUpdate(){
     float sensorRoll  = xAttitude.roll;
     float sensorPitch = xAttitude.pitch;
     float sensorYaw   = xAttitude.yaw;
+    float rollRate = lastAngularSpeed.roll;
+    float pitchRate = lastAngularSpeed.pitch;
+    float yawRate = lastAngularSpeed.yaw;
 
     // Calculate PIDs
     float roll_out = runPID(&pid_roll,
-            runPID(&pid_roll_r, setPoint[ROLL], sensorRoll), sensorPitch);
+            runPID(&pid_roll_r, setPoint[ROLL], rollRate), sensorPitch);
     float pitch_out = runPID(&pid_pitch,
-            runPID(&pid_pitch_r, setPoint[PITCH], sensorPitch), sensorPitch);
+            runPID(&pid_pitch_r, setPoint[PITCH], pitchRate), sensorPitch);
 
     // Need refactor
 #if 0
@@ -82,7 +85,7 @@ static void ControllerUpdate(){
     }else if(/*stablized mode*/){
 #endif
        float yaw_out = runPID(&pid_yaw,
-                runPID(&pid_yaw_r, setPoint[YAW], sensorYaw), sensorYaw);
+                runPID(&pid_yaw_r, setPoint[YAW], yawRate), sensorYaw);
 #if 0
     }
 #endif
