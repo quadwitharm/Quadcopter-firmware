@@ -39,9 +39,6 @@ bool InitSensorPeriph(){
 }
 
 bool InitSensorTask(){
-
-    xDataReady = xEventGroupCreate();
-
     /* FreeRTOS Tasks */
     portBASE_TYPE ret;
     ret = xTaskCreate(SensorTask,
@@ -61,11 +58,39 @@ bool InitSensorTask(){
     return true;
 }
 
+IRQ(){
+    if(Pending  ){
+        *_avail = true;
+        xTaskResumeFromISR(recvTaskHandle);
+        Clear Pending();
+    }
+}
+
+#define GYRO_DRDY 0x01
+#define ACCEL_DRDY 0x02
 void SensorTask(void *arg){
+    uint32_t GyroAccelDRDY = 0;
     while(1){
-        L3G4200D_Recv(arg);
-        ADXL345_Recv(arg);
-        vTaskDelay(1);
+        if(g_avail){
+            L3G4200D_Recv(arg);
+            GyroAccelDRDY |= GYRO_DRDY;
+            g_avail = false;
+        }
+        if(a_avail){
+            ADXL345_Recv(arg);
+            GyroAccelDRDY |= ACCEL_DRDY;
+            a_avail = false;
+        }
+        if(h_avail){
+            HMC5883L_Recv();
+            h_avail = false;
+        }
+
+        if(GyroAccelDRDY == GYRO_DRDY | ACCEL_DRDY){
+            Kalman & Complementary();
+            GyroAccelDRDY = 0;
+        }
+        vTaskResume(recvTaskHandle);
     }
 }
 
@@ -170,11 +195,9 @@ struct Angle3D KalmanFilter(struct Angle3D *gyro, struct Angle3D *newDataRate, f
     };
 }
 
-void ProcessTask(void *arg){
+void Process(){
     const float Time = 0.005f;
     const float gyroScale = 0.0074f;
-    while(1){
-        xEventGroupWaitBits(xDataReady, ALL_DRDY_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
 
         // Read from shared memory
         struct Vector3D accel = {
@@ -190,6 +213,8 @@ void ProcessTask(void *arg){
 
         acceleration = accel;
         lastAngularSpeed = angularSpeed;
+
+        // TODO: Kalman Filter
 
         // Convert to 360 degree
         struct Angle3D gyroEstimateAngle = {
@@ -220,9 +245,6 @@ void ProcessTask(void *arg){
         // Conplementary filter
         xAttitude = ComplementaryFilter(&gyroEstimateAngle,&AccelEstimateAngle);
 
-        xEventGroupClearBits(xDataReady, ALL_DRDY_BIT);
-        // Make a unit vector of force
-    }
 }
 
 void setDataReady(EventBits_t source){
