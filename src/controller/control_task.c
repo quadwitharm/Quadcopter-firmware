@@ -12,7 +12,7 @@ pid_context_t pid_roll, pid_pitch, pid_yaw;
 pid_context_t pid_roll_r, pid_pitch_r, pid_yaw_r;
 /*static*/ float mFR,mBL,mFL,mBR;
 
-float setPoint[NUM_AXIS] = {};
+float setPoint[4] = {};
 bool controllerUpdate = true;
 
 static xTaskHandle controllerTaskHandle;

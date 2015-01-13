@@ -1,7 +1,7 @@
 #include "controller/control_api.h"
 #include "controller/pid.h"
 
-extern bool controllerUpdate;
+extern bool controllerEnable;
 extern float setPoint[NUM_AXIS];
 extern pid_context_t pid_roll, pid_pitch, pid_yaw;
 
@@ -30,6 +30,6 @@ void setSetPoint( enum Axis a, float value){
     setPoint[a] = value;
 }
 
-void setControllerUpdate( bool set ){
-    controllerUpdate = set;
+void setControllerEnable( bool set ){
+    controllerEnable = set;
 }
