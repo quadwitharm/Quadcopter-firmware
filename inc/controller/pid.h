@@ -8,6 +8,7 @@ typedef struct pid_context_t{
     float prev_in;
     float integral;
     float max,min;
+    float out;
 } pid_context_t;
 
 float runPID(pid_context_t * p,float setpoint,float input);

@@ -13,7 +13,6 @@
 float _runPID(pid_context_t * p,float error,float diff){
 
     float deriv;
-    float output;
 
     //use input instead of error to avoid derivative kick
     deriv = diff / DT;
@@ -25,11 +24,12 @@ float _runPID(pid_context_t * p,float error,float diff){
     if(p->integral > p->max){p->integral = p->max;}
     if(p->integral < p->min){p->integral = p->min;}
 
-    output =  error*p->kp + p->integral + deriv*p->kd;
+    p->out =  error*p->kp + p->integral + deriv*p->kd;
 
-    if(output > p->max){output = p->max;}     
-    if(output < p->min){output = p->min;}
-    return output;
+    if(p->out > p->max){p->out = p->max;}     
+    if(p->out < p->min){p->out = p->min;}
+    
+    return p->out;
 }
 
 float runPID(pid_context_t * p,float setpoint,float input){

@@ -9,6 +9,7 @@ static void Controller_Task(void *args);
 static void ControllerUpdate(void);
 
 pid_context_t pids[NUM_AXIS];
+float sensorData[NUM_AXIS];
 float mFR,mBL,mFL,mBR;
 
 float setPoint[NUM_RC_IN] = {};
@@ -51,6 +52,7 @@ static void Controller_Task(void *args){
 
         ControllerUpdate();
         UpdateMotorSpeed( (float []){ mFR, mFL, mBL, mBR } );
+        sendControlInfo();
 
         // Timer interrupt will wake up this task
         vTaskSuspend(controllerTaskHandle);
@@ -64,18 +66,20 @@ static void Controller_Task(void *args){
 
 static void ControllerUpdate(){
     // Read data, TODO: protect the data
-    float sensorRoll  = xAttitude.roll;
-    float sensorPitch = xAttitude.pitch;
-    float sensorYaw   = xAttitude.yaw;
-    float rollRate = lastAngularSpeed.roll;
-    float pitchRate = lastAngularSpeed.pitch;
-    float yawRate = lastAngularSpeed.yaw;
+    sensorData[ROLL] = xAttitude.roll;
+    sensorData[PITCH] = xAttitude.pitch;
+    sensorData[YAW] = xAttitude.yaw;
+    sensorData[ROLL_RATE] = lastAngularSpeed.roll;
+    sensorData[PITCH_RATE] = lastAngularSpeed.pitch;
+    sensorData[YAW_RATE] = lastAngularSpeed.yaw;
 
     // Calculate PIDs
     float roll_out = runPID(&pids[ROLL],
-            runPID(&pids[ROLL_RATE], setPoint[ROLL_C], rollRate), sensorRoll);
+        runPID(&pids[ROLL_RATE], setPoint[ROLL_C],
+        sensorData[ROLL_RATE]),sensorData[ROLL]);
     float pitch_out = runPID(&pids[PITCH],
-            runPID(&pids[PITCH_RATE], setPoint[PITCH_C], pitchRate), sensorPitch);
+        runPID(&pids[PITCH_RATE], setPoint[PITCH_C], 
+        sensorData[PITCH_RATE]),sensorData[PITCH]);
 
     // Need refactor
 #if 0
@@ -83,8 +87,9 @@ static void ControllerUpdate(){
         yaw_out = runPID(&pid_yaw_r,/**/,/**/);
     }else if(/*stablized mode*/){
 #endif
-       float yaw_out = runPID(&pids[YAW],
-                runPID(&pids[YAW_RATE], setPoint[YAW_C], yawRate), sensorYaw);
+        float yaw_out = runPID(&pids[YAW],
+            runPID(&pids[YAW_RATE], setPoint[YAW_C], 
+        sensorData[YAW_RATE]), sensorData[YAW]);
 #if 0
     }
 #endif
@@ -103,3 +108,4 @@ static void ControllerUpdate(){
     SCALE(mBR,0,1);
     SCALE(mBL,0,1);
 }
+
