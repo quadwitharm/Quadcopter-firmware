@@ -24,7 +24,14 @@ HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate){
 }
 
 HAL_StatusTypeDef UART_send(uint8_t* data, uint16_t length){//blocking call
-    HAL_StatusTypeDef status = HAL_UART_Transmit(&UartHandle, data, length, 10000);
+    HAL_StatusTypeDef status;
+#if 1
+    for(;length>0;length--){
+        status= HAL_UART_Transmit(&UartHandle, data++, 1, 10000);
+    }
+#else
+    status= HAL_UART_Transmit(&UartHandle, data, length, 10000);
+#endif
     return status;
 }
 
@@ -35,6 +42,14 @@ HAL_StatusTypeDef UART_recv(uint8_t* buffer, uint16_t length){
 
 void UART_send_IT(uint8_t* data, uint16_t length){
     HAL_UART_Transmit_IT(&UartHandle, data, length);
+#if 1
+    for(;length>0;length--){
+        HAL_UART_Transmit_IT(&UartHandle, data++, 1);
+    }
+#else
+    HAL_UART_Transmit_IT(&UartHandle, data, length);
+#endif
+
     while (!xSemaphoreTake(_tx_wait_sem, portMAX_DELAY));
 }
 
