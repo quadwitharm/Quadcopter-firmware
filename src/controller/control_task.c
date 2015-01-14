@@ -48,9 +48,11 @@ void TIM2_IRQHandler(void){
 static void Controller_Task(void *args){
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
     while(1){
-        if( !controllerEnable ) continue;
-
-        ControllerUpdate();
+        if( controllerEnable ){
+            ControllerUpdate();
+        }else{
+             mFR = mFL = mBL = mBR = 0.0f;
+        }
         UpdateMotorSpeed( (float []){ mFR, mFL, mBL, mBR } );
         sendControlInfo();
 

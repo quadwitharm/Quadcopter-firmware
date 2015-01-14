@@ -50,7 +50,11 @@ static void ShellTask(void *args){
 
         switch(type){
             case 0x0:
+                setControllerEnable(false);
+                break;
             case 0x1:
+                setControllerEnable(true);
+                break;
             case 0x2:
             case 0x3:break;
             case 0x4:
