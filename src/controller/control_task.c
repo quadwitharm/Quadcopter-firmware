@@ -11,7 +11,7 @@ static void ControllerUpdate(void);
 pid_context_t pids[NUM_AXIS];
 float mFR,mBL,mFL,mBR;
 
-float setPoint[4] = {};
+float setPoint[NUM_RC_IN] = {};
 bool controllerEnable = true;
 
 static xTaskHandle controllerTaskHandle;
@@ -73,9 +73,9 @@ static void ControllerUpdate(){
 
     // Calculate PIDs
     float roll_out = runPID(&pids[ROLL],
-            runPID(&pids[ROLL_RATE], setPoint[0], rollRate), sensorRoll);
+            runPID(&pids[ROLL_RATE], setPoint[ROLL_C], rollRate), sensorRoll);
     float pitch_out = runPID(&pids[PITCH],
-            runPID(&pids[PITCH_RATE], setPoint[1], pitchRate), sensorPitch);
+            runPID(&pids[PITCH_RATE], setPoint[PITCH_C], pitchRate), sensorPitch);
 
     // Need refactor
 #if 0
@@ -84,12 +84,12 @@ static void ControllerUpdate(){
     }else if(/*stablized mode*/){
 #endif
        float yaw_out = runPID(&pids[YAW],
-                runPID(&pids[YAW_RATE], setPoint[2], yawRate), sensorYaw);
+                runPID(&pids[YAW_RATE], setPoint[YAW_C], yawRate), sensorYaw);
 #if 0
     }
 #endif
 
-    float throttle = setPoint[3];/*should be radio input*/
+    float throttle = setPoint[THR_C];/*should be radio input*/
 
     // Motor output
     mFR = throttle + roll_out - pitch_out + yaw_out;

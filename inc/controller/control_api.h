@@ -4,11 +4,13 @@
 #include "clib.h"
 
 enum Axis{ ROLL, PITCH, YAW, ROLL_RATE, PITCH_RATE, YAW_RATE,
-         X, Y, Z, NUM_AXIS };
+        NUM_AXIS };
+enum RC_IN{ ROLL_C, PITCH_C ,YAW_C ,THR_C ,NUM_RC_IN}
 enum PID_K{ KP, KI, KD, MAX, MIN };
 
 void setPidParameter( enum Axis, enum PID_K, float );
-void setSetPoint( enum Axis, float );
+float getPidParameter( enum Axis, enum PID_K);
+void setSetPoint( enum RC_IN, float );
 void setControllerUpdate( bool );
 
 #endif
