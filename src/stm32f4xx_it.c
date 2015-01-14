@@ -138,31 +138,10 @@ void SysTick_Handler(void)
 /*  file (startup_stm32f4xx.s).                                               */
 /******************************************************************************/
 
-extern bool accel_avail, gyro_avail, compass_avail;
-extern xTaskHandle recvTaskHandle;
 /**
  * @brief  Sensor DRDY interrupt, PG10, PG11, PG12
  * @param  None
  * @retval None
  */
-void EXTI15_10_IRQHandler(void)
-{
-    kputs("EXTI15_10_IRQHandler\r\n");
-    if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_10) != RESET)  {
-        __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_10);
-        accel_avail = true;
-        xTaskResumeFromISR(recvTaskHandle);
-    }
-    if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_11) != RESET)  {
-        __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_11);
-        gyro_avail = true;
-        xTaskResumeFromISR(recvTaskHandle);
-    }
-    if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_12) != RESET)  {
-        __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_12);
-        compass_avail = true;
-        xTaskResumeFromISR(recvTaskHandle);
-    }
-}
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -77,7 +77,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
     /* Set transmission flag: trasfer complete*/
     xSemaphoreGiveFromISR(_rx_wait_sem, &xHigherPriorityTaskWoken);
     if (xHigherPriorityTaskWoken) {
-        taskYIELD();
+        vPortYield();
+//        taskYIELD();
     }
 }
 
@@ -93,7 +94,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
         GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
         HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-        HAL_NVIC_SetPriority(USART1_IRQn, 9, 0);
+        HAL_NVIC_SetPriority(USART1_IRQn, 12, 0);
         HAL_NVIC_EnableIRQ(USART1_IRQn);
     }else if(huart->Instance == USART2){// tx/rx: PA2/PA3, PD5/PD6
         __USART2_CLK_ENABLE();

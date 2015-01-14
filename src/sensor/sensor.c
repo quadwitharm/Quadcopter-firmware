@@ -12,8 +12,6 @@
 xTaskHandle recvTaskHandle;
 xTaskHandle processTaskHandle;
 
-bool accel_avail, gyro_avail, compass_avail;
-
 /* Parameter of Kalman Filter */
 struct KalmanParameter Kroll;
 struct KalmanParameter Kpitch;
@@ -28,6 +26,7 @@ struct Vector3D acceleration;
 
 void SensorTask(void *arg);
 void DRDY_INT_Init();
+void Init_SensorDetective();
 
 bool InitSensorPeriph(){
     kputs("I2C: Initialing ...\r\n");
@@ -37,8 +36,9 @@ bool InitSensorPeriph(){
     /* Initialize sensors on GY-801 */
     L3G4200D_Init();
     ADXL345_Init();
+    HMC5883L_Init();
 
-    accel_avail = gyro_avail = compass_avail = false;
+    //Init_SensorDetective();
 
     return true;
 }
@@ -133,14 +133,57 @@ void Process(){
 #define GYRO_DRDY 0x01
 #define ACCEL_DRDY 0x02
 void SensorTask(void *arg){
+    HAL_NVIC_EnableIRQ(TIM4_IRQn);
     while(1){
         /* Read Sensor */
-        L3G4200D_Recv();
-        ADXL345_Recv();
-        HMC5883L_Recv();
+        //L3G4200D_Recv();
+        //ADXL345_Recv();
+        //HMC5883L_Recv();
 
         /* Process */
-        Process();
+        //Process();
+
+        kputs("SensorTask\r\n");
+        // Timer interrupt will wake up this task
+        vTaskSuspend(recvTaskHandle);
     }
 }
 
+
+TIM_HandleTypeDef TIM4_Handle;
+
+void Init_SensorDetective()
+{
+    HAL_StatusTypeDef status = HAL_OK;
+
+    /* TIMx Peripheral clock enable */
+    __TIM4_CLK_ENABLE();
+
+    TIM4_Handle.Instance = TIM4;
+    TIM4_Handle.Init.Prescaler = 0;
+    TIM4_Handle.Init.Period = 1500000;
+    TIM4_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    TIM4_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+
+    status = HAL_TIM_Base_Init(&TIM4_Handle);
+    if( HAL_OK != status ){ return; }
+
+    HAL_NVIC_SetPriority(TIM4_IRQn, 13, 0);
+
+    HAL_TIM_Base_Start_IT(&TIM4_Handle);
+    kputs("Initialized TIM4\r\n");
+}
+
+void TIM4_IRQHandler(void){
+    kputs("TIM4\r\n");
+    /* TIM Update event */
+    if(__HAL_TIM_GET_FLAG(&TIM4_Handle, TIM_FLAG_UPDATE) != RESET) {
+        if(__HAL_TIM_GET_ITSTATUS(&TIM4_Handle, TIM_IT_UPDATE) !=RESET) {
+            __HAL_TIM_CLEAR_IT(&TIM4_Handle, TIM_IT_UPDATE);
+            if(pdTRUE == xTaskResumeFromISR(recvTaskHandle)){
+//                taskYIELD();
+                vPortYield();
+            }
+        }
+    }
+}
