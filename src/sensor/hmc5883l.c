@@ -36,7 +36,14 @@ void HMC5883L_Init(){
     kputs("Control Register for HMC5883L had been set\r\n");
 }
 
-void HMC5883L_Recv(void *arg){
+void HMC5883L_Recv(){
+    uint8_t status;
+    READ_HMC5883L(StatusReg, &status, 1);
+
+    if (status & 0x00000010){
+        return;
+    }
+     
     uint8_t tmpbuff[6];
     READ_HMC5883L(DataXMSB, tmpbuff, 6);
 
@@ -51,4 +58,5 @@ void HMC5883L_Recv(void *arg){
 
     /* single-measurement mode */
     Write_HMC5883L(ModeReg, 0b00000001);
+    
 }

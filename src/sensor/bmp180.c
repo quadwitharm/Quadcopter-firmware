@@ -6,7 +6,6 @@
 #include "semphr.h"
 
 static xSemaphoreHandle BMP180_Lock;
-static bool dataAvailable = false;
 struct BMP180 BMP180;
 long UT;
 long UP;

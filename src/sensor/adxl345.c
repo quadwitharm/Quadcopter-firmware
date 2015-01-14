@@ -44,11 +44,10 @@ void ADXL345_Init(){
 }
 
 void ADXL345_Recv(void *arg){
-    uint8_t _STATUS;
-    READ_ADXL345(INT_SOURCE, &_STATUS);
+    uint8_t status;
+    READ_ADXL345(INT_SOURCE, &status);
 
-    /* Data not available yet */
-    if(!(_STATUS & 0b10000000)){
+    if (!(status & 0b10000000)) {
         return;
     }
 
@@ -60,5 +59,4 @@ void ADXL345_Recv(void *arg){
 
     READ_ADXL345(DATAZ1, &ADXL345.uint8.ZH);
     READ_ADXL345(DATAZ0, &ADXL345.uint8.ZL);
-    setDataReady(ADXL345_DRDY_BIT);
 }

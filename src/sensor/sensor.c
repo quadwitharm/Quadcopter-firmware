@@ -1,17 +1,20 @@
 #include "sensor/sensor.h"
 #include "sensor/l3g4200d.h"
 #include "sensor/adxl345.h"
+#include "sensor/hmc5883l.h"
 #include "sensor/i2c.h"
+#include "sensor/filter.h"
 
 #include "task.h"
 #include "arm_math.h"
 
 /* Arise if all data ready */
-EventGroupHandle_t xDataReady;
 xTaskHandle recvTaskHandle;
 xTaskHandle processTaskHandle;
 
-/* Kalman Filter */
+bool accel_avail, gyro_avail, compass_avail;
+
+/* Parameter of Kalman Filter */
 struct KalmanParameter Kroll;
 struct KalmanParameter Kpitch;
 
@@ -23,17 +26,22 @@ struct Vector3D position;
 struct Vector3D velocity;
 struct Vector3D acceleration;
 
-void ProcessTask(void *arg);
 void SensorTask(void *arg);
+void DRDY_INT_Init();
 
 bool InitSensorPeriph(){
     kputs("I2C: Initialing ...\r\n");
     if(!I2C_Init()) return false;
     kputs("I2C: Initialized\r\n");
 
+    /* Initilize sensors Data Ready Interrupt */
+    DRDY_INT_Init();
+
     /* Initialize sensors on GY-801 */
     L3G4200D_Init();
     ADXL345_Init();
+
+    accel_avail = gyro_avail = compass_avail = false;
 
     return true;
 }
@@ -48,50 +56,7 @@ bool InitSensorTask(){
             tskIDLE_PRIORITY + 3,
             &recvTaskHandle);
     if(ret != pdPASS)return false;
-    ret = xTaskCreate(ProcessTask,
-            (portCHAR *)"Attitude data proccess",
-            512,
-            NULL,
-            tskIDLE_PRIORITY + 4,
-            &processTaskHandle);
-    if(ret != pdPASS)return false;
     return true;
-}
-
-IRQ(){
-    if(Pending  ){
-        *_avail = true;
-        xTaskResumeFromISR(recvTaskHandle);
-        Clear Pending();
-    }
-}
-
-#define GYRO_DRDY 0x01
-#define ACCEL_DRDY 0x02
-void SensorTask(void *arg){
-    uint32_t GyroAccelDRDY = 0;
-    while(1){
-        if(g_avail){
-            L3G4200D_Recv(arg);
-            GyroAccelDRDY |= GYRO_DRDY;
-            g_avail = false;
-        }
-        if(a_avail){
-            ADXL345_Recv(arg);
-            GyroAccelDRDY |= ACCEL_DRDY;
-            a_avail = false;
-        }
-        if(h_avail){
-            HMC5883L_Recv();
-            h_avail = false;
-        }
-
-        if(GyroAccelDRDY == GYRO_DRDY | ACCEL_DRDY){
-            Kalman & Complementary();
-            GyroAccelDRDY = 0;
-        }
-        vTaskResume(recvTaskHandle);
-    }
 }
 
 float getRoll(float x, float y, float z,float estimateRoll){
@@ -115,84 +80,6 @@ float getPitch(float x, float y, float z,float estimatePitch){
         else return - 180 - atan;
     }
     return atan;
-}
-
-struct Angle3D ComplementaryFilter(struct Angle3D *gyro,struct Angle3D *fix){
-    return (struct Angle3D){
-        gyro -> roll  * 0.99 + fix -> roll  * 0.01,
-        gyro -> pitch * 0.99 + fix -> pitch * 0.01,
-        gyro -> yaw   * 0.99 + fix -> yaw   * 0.01,
-    };
-}
-
-struct Angle3D KalmanFilter(struct Angle3D *gyro, struct Angle3D *newDataRate, float dt){
-
-    /* Step 1 */
-    Kroll.rate = newDataRate -> roll - Kroll.bias;
-    Kroll.angle += dt * Kroll.rate;
-
-    Kpitch.rate = newDataRate -> pitch - Kpitch.bias;
-    Kpitch.angle += dt * Kpitch.rate;
-
-    /* Step 2: Update estimation error covariance */
-    Kroll.P[0][0] += dt * (dt * Kroll.P[1][1] - Kroll.P[0][1] - 
-		     Kroll.P[1][0] + Kroll.Q_angle);
-    Kroll.P[0][1] -= dt * Kroll.P[1][1];
-    Kroll.P[1][0] -= dt * Kroll.P[1][1];
-    Kroll.P[1][1] += Kroll.Q_bias * dt;
-
-    Kpitch.P[0][0] += dt * (dt * Kpitch.P[1][1] - Kpitch.P[0][1] - 
-		      Kpitch.P[1][0] + Kpitch.Q_angle);
-    Kpitch.P[0][1] -= dt * Kpitch.P[1][1];
-    Kpitch.P[1][0] -= dt * Kpitch.P[1][1];
-    Kpitch.P[1][1] += Kpitch.Q_bias * dt;
-
-    /* Step 3: Calculate angle and bias */
-    float yroll = gyro -> roll - Kroll.angle;
-    float ypitch = gyro -> pitch - Kroll.angle;
-
-    /* Step 4: Calculate Kalman gain */
-    float Sroll = Kroll.P[0][0] + Kpitch.R_measure;
-    float Spitch = Kpitch.P[0][0] + Kpitch.R_measure;
-
-    /* Step 5 */
-    float kroll[2];
-    kroll[0] = Kroll.P[0][0] / Sroll;
-    kroll[1] = Kroll.P[1][1] / Sroll;
-
-    float kpitch[2];
-    kpitch[0] = Kpitch.P[0][0] / Spitch;
-    kpitch[1] = Kpitch.P[1][1] / Spitch;
-
-    /* Step 6:  */
-    Kroll.angle += kroll[0] * yroll;
-    Kroll.bias += kroll[1] * yroll;
-
-    Kpitch.angle += kpitch[0] * ypitch;
-    Kpitch.bias += kpitch[1] * ypitch;
-
-    /* Step 7: Calculate estimation error covariance */
-    float P00_roll = Kroll.P[0][0];
-    float P01_roll = Kroll.P[0][1];
-
-    Kroll.P[0][0] -= kroll[0] * P00_roll;
-    Kroll.P[0][1] -= kroll[0] * P01_roll;
-    Kroll.P[1][0] -= kroll[0] * P00_roll;
-    Kroll.P[1][1] -= kroll[0] * P01_roll;
-    
-    float P00_pitch = Kpitch.P[0][0];
-    float P01_pitch = Kpitch.P[0][1];
-
-    Kpitch.P[0][0] -= kpitch[0] * P00_pitch;
-    Kpitch.P[0][1] -= kpitch[0] * P01_pitch;
-    Kpitch.P[1][0] -= kpitch[0] * P00_pitch;
-    Kpitch.P[1][1] -= kpitch[0] * P01_pitch;
-
-    return (struct Angle3D){
-        Kroll.angle,
-        Kpitch.angle,
-        gyro -> yaw,
-    };
 }
 
 void Process(){
@@ -244,9 +131,34 @@ void Process(){
 
         // Conplementary filter
         xAttitude = ComplementaryFilter(&gyroEstimateAngle,&AccelEstimateAngle);
-
 }
 
-void setDataReady(EventBits_t source){
-    xEventGroupSetBits(xDataReady, source);
+#define GYRO_DRDY 0x01
+#define ACCEL_DRDY 0x02
+void SensorTask(void *arg){
+    while(1){
+        /* Read Sensor */
+        L3G4200D_Recv();
+        ADXL345_Recv();
+        HMC5883L_Recv();
+
+        /* Process */
+        Process();
+    }
+}
+
+void DRDY_INT_Init(){
+    GPIO_InitTypeDef   GPIO_InitStructure;
+    /* Enable GPIOG clock */
+    __GPIOG_CLK_ENABLE();
+
+    /* Configure PA10/PA11/PA12 pin as input floating */
+    GPIO_InitStructure.Mode = GPIO_MODE_IT_FALLING;
+    GPIO_InitStructure.Pull = GPIO_PULLUP;
+    GPIO_InitStructure.Pin = GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12;
+    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+    /* Enable and set EXTI Line0 Interrupt to the lowest priority */
+    HAL_NVIC_SetPriority(EXTI15_10_IRQn, 11, 0);
+    HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
