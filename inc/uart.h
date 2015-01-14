@@ -13,6 +13,8 @@ char recv_byte();
 HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate);
 HAL_StatusTypeDef UART_send(uint8_t* data, uint16_t length);
 HAL_StatusTypeDef UART_recv(uint8_t* buffer, uint16_t length);
+void UART_send_IT(uint8_t* data, uint16_t length);
+void UART_recv_IT(uint8_t* buffer, uint16_t length);
 void USARTx_IRQHandler(void);
 
 #ifdef __cplusplus
