@@ -39,6 +39,7 @@ void setDataReady(EventBits_t source);
 bool InitSensorPeriph();
 bool InitSensorTask();
 void SensorTask(void *);
+void sendSensorInfo();
 
 #define ADXL345_DRDY_BIT  0b00000001
 #define L3G4200D_DRDY_BIT 0b00000010

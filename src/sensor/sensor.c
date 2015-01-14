@@ -2,6 +2,7 @@
 #include "sensor/l3g4200d.h"
 #include "sensor/adxl345.h"
 #include "sensor/i2c.h"
+#include "uart.h"
 
 #include "task.h"
 #include "arm_math.h"
@@ -18,6 +19,8 @@ struct KalmanParameter Kpitch;
 /* Definition of shared resource */
 struct Angle3D xAttitude;
 struct Angle3D lastAngularSpeed;
+static struct Angle3D gyroAngle;
+static struct Angle3D accelAngle;
 
 struct Vector3D position;
 struct Vector3D velocity;
@@ -203,6 +206,7 @@ void ProcessTask(void *arg){
         if(gyroEstimateAngle.pitch <-180) gyroEstimateAngle.pitch += 360;
         if(gyroEstimateAngle.yaw   > 180) gyroEstimateAngle.yaw   -= 360;
         if(gyroEstimateAngle.yaw   <-180) gyroEstimateAngle.yaw   += 360;
+        gyroAngle = gyroEstimateAngle;
 
         // Make a unit vector of force
         float F = sqrtf(accel.x * accel.x + accel.y * accel.y + accel.z * accel.z);
@@ -216,15 +220,37 @@ void ProcessTask(void *arg){
             -getPitch(x,y,z,gyroEstimateAngle.pitch),
             gyroEstimateAngle.yaw, /* Accelerometer can not estimate yaw */
         };
+        accelAngle = AccelEstimateAngle;
 
         // Conplementary filter
         xAttitude = ComplementaryFilter(&gyroEstimateAngle,&AccelEstimateAngle);
-
+        
         xEventGroupClearBits(xDataReady, ALL_DRDY_BIT);
         // Make a unit vector of force
+
+        sendSensorInfo();
     }
 }
 
 void setDataReady(EventBits_t source){
     xEventGroupSetBits(xDataReady, source);
+}
+
+void sendSensorInfo(){
+    uint8_t head = 0x01;
+    UART_send((uint8_t []){head,0x00},2);
+    UART_send((uint8_t *)(float []){lastAngularSpeed.roll,
+        lastAngularSpeed.pitch,lastAngularSpeed.yaw},12);
+    UART_send((uint8_t []){head,0x01},2);
+    UART_send((uint8_t *)(float []){acceleration.x,
+        acceleration.y,acceleration.z},12);
+    UART_send((uint8_t []){head,0x02},2);
+    UART_send((uint8_t *)(float []){gyroAngle.roll,
+        gyroAngle.pitch,gyroAngle.yaw},12);
+    UART_send((uint8_t []){head,0x03},2);
+    UART_send((uint8_t *)(float []){accelAngle.roll,
+        accelAngle.pitch,accelAngle.yaw},12);
+    UART_send((uint8_t []){head,0x04},2);
+    UART_send((uint8_t *)(float []){xAttitude.roll,
+        xAttitude.pitch,xAttitude.yaw},12);
 }
