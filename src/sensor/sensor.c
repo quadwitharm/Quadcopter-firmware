@@ -34,9 +34,6 @@ bool InitSensorPeriph(){
     if(!I2C_Init()) return false;
     kputs("I2C: Initialized\r\n");
 
-    /* Initilize sensors Data Ready Interrupt */
-    DRDY_INT_Init();
-
     /* Initialize sensors on GY-801 */
     L3G4200D_Init();
     ADXL345_Init();
@@ -147,18 +144,3 @@ void SensorTask(void *arg){
     }
 }
 
-void DRDY_INT_Init(){
-    GPIO_InitTypeDef   GPIO_InitStructure;
-    /* Enable GPIOG clock */
-    __GPIOG_CLK_ENABLE();
-
-    /* Configure PA10/PA11/PA12 pin as input floating */
-    GPIO_InitStructure.Mode = GPIO_MODE_IT_FALLING;
-    GPIO_InitStructure.Pull = GPIO_PULLUP;
-    GPIO_InitStructure.Pin = GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12;
-    HAL_GPIO_Init(GPIOG, &GPIO_InitStructure);
-
-    /* Enable and set EXTI Line0 Interrupt to the lowest priority */
-    HAL_NVIC_SetPriority(EXTI15_10_IRQn, 11, 0);
-    HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-}
