@@ -142,25 +142,24 @@ void Init_SensorDetective()
     HAL_StatusTypeDef status = HAL_OK;
 
     /* TIMx Peripheral clock enable */
-    __TIM4_CLK_ENABLE();
+    __TIM5_CLK_ENABLE();
 
-    TIM4_Handle.Instance = TIM4;
-    TIM4_Handle.Init.Prescaler = 0;
-    TIM4_Handle.Init.Period = 1500000;
-    TIM4_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    TIM4_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+    TIM5_Handle.Instance = TIM5;
+    TIM5_Handle.Init.Prescaler = ;
+    TIM5_Handle.Init.Period = 450000;
+    TIM5_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    TIM5_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
 
     status = HAL_TIM_Base_Init(&TIM4_Handle);
     if( HAL_OK != status ){ return; }
 
-    HAL_NVIC_SetPriority(TIM4_IRQn, 13, 0);
+    HAL_NVIC_SetPriority(TIM5_IRQn, 13, 0);
 
-    HAL_TIM_Base_Start_IT(&TIM4_Handle);
+    HAL_TIM_Base_Start_IT(&TIM5_Handle);
     kputs("Initialized TIM4\r\n");
 }
 
-void TIM4_IRQHandler(void){
-    kputs("TIM4\r\n");
+void TIM5_IRQHandler(void){
     /* TIM Update event */
     if(__HAL_TIM_GET_FLAG(&TIM4_Handle, TIM_FLAG_UPDATE) != RESET) {
         if(__HAL_TIM_GET_ITSTATUS(&TIM4_Handle, TIM_IT_UPDATE) !=RESET) {
