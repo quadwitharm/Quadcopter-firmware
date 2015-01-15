@@ -40,7 +40,6 @@ HAL_StatusTypeDef UART_recv(uint8_t* buffer, uint16_t length){
     HAL_StatusTypeDef status;
     for(;length>0;length--){
         status = HAL_UART_Receive(&UartHandle, (uint8_t *)buffer, 1, 10000);
-        kprintf("%x ",buffer[0]);
         buffer++;
     }
     //HAL_StatusTypeDef status = HAL_UART_Receive(&UartHandle, (uint8_t *)buffer, length, 10000);
@@ -66,7 +65,6 @@ void UART_recv_IT(uint8_t* buffer, uint16_t length){
         tmpbuffer = buffer;
         HAL_UART_Receive_IT(&UartHandle, buffer, 1);
         while (!xSemaphoreTake(_rx_wait_sem, portMAX_DELAY));
-        kprintf("%d ",buffer[0]);
         buffer++;
     }
 }
@@ -112,7 +110,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle){
     static signed portBASE_TYPE xHigherPriorityTaskWoken;
     /* Set transmission flag: trasfer complete*/
-    kprintf("-%x ",UartHandle->ErrorCode);
+//    kprintf("UART error:%x ",UartHandle->ErrorCode);
     *tmpbuffer = UartHandle->Instance->DR;
     xSemaphoreGiveFromISR(_rx_wait_sem, &xHigherPriorityTaskWoken);
     if (xHigherPriorityTaskWoken) {
