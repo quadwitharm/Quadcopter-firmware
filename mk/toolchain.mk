@@ -21,7 +21,7 @@ CFLAGS += -DARM_MATH_CM4 -D__FPU_PRESENT
 
 # Basic configurations
 CFLAGS += -g -std=c11
-CFLAGS += -Wall -Werror
+CFLAGS += -Wall #-Werror
 CFLAGS += -fno-builtin
 CFLAGS += -DUSER_NAME=\"$(USER)\"
 

@@ -71,12 +71,14 @@ static void Controller_Task(void *args){
 
 static void ControllerUpdate(){
     // Read data, TODO: protect the data
+    taskENTER_CRITICAL();
     sensorData[ROLL] = xAttitude.roll;
     sensorData[PITCH] = xAttitude.pitch;
     sensorData[YAW] = xAttitude.yaw;
     sensorData[ROLL_RATE] = lastAngularSpeed.roll;
     sensorData[PITCH_RATE] = lastAngularSpeed.pitch;
     sensorData[YAW_RATE] = lastAngularSpeed.yaw;
+    taskEXIT_CRITICAL();
 
     // Calculate PIDs
     float roll_out = runPID(&pids[ROLL],

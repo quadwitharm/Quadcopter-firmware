@@ -300,6 +300,8 @@ struct Angle3D getAngle()
 
 void sendSensorInfo(){
     uint8_t head = 0x01;
+
+    taskENTER_CRITICAL();
     UART_send((uint8_t []){head,0x00},2);
     UART_send((uint8_t *)(float []){lastAngularSpeed.roll,
         lastAngularSpeed.pitch,lastAngularSpeed.yaw},12);
@@ -315,4 +317,5 @@ void sendSensorInfo(){
     UART_send((uint8_t []){head,0x04},2);
     UART_send((uint8_t *)(float []){xAttitude.roll,
         xAttitude.pitch,xAttitude.yaw},12);
+    taskEXIT_CRITICAL();
 }
