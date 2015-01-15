@@ -45,7 +45,6 @@ static void ShellTask(void *args){
     while(1){
         //puts( COMMAND_PROMPT );
         //gets(line, BUFSIZE);
-
         UART_recv_IT(&type,1);//get command type
         switch(type){
             case 0x0:
@@ -73,6 +72,7 @@ static void ShellTask(void *args){
                 handleTextCommand();
                 break;
         }
+        kprintf("Handled command: %d\r\n",type);
     }
 }
 
@@ -85,6 +85,7 @@ static void handlePID(){
     setPidParameter(which,KP,buf[0]);
     setPidParameter(which,KI,buf[1]);
     setPidParameter(which,KD,buf[2]);
+    kprintf("%f %f %f",buf[0],buf[1],buf[2]);
     //UART_send_IT((uint8_t []){0x00,0x04},2);
 }
 
@@ -104,7 +105,7 @@ static void handleChangeSetPoint(){
     }else{
 
     }
-    kprintf("%f %f %f\r\n",buf[0],buf[1],buf[2]);
+    kprintf("%f %f %f",buf[0],buf[1],buf[2]);
     //UART_send_IT((uint8_t []){0x00,0x05},2);
 }
 
