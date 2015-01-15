@@ -4,6 +4,7 @@
 #include "sensor/hmc5883l.h"
 #include "sensor/i2c.h"
 #include "sensor/filter.h"
+
 #include "uart.h"
 
 #include "task.h"
@@ -29,6 +30,9 @@ void Init_SensorDetective();
 void Init_Attitude();
 struct Angle3D getAngle();
 void AHRSupdate(struct Angle3D, struct Angle3D, struct Angle3D);
+void IMUupdate(struct Angle3D, struct Angle3D);
+void Init_quaternion();
+float invSqrt(float );
 
 bool InitSensorPeriph(){
     kputs("I2C: Initialing ...\r\n");
@@ -41,7 +45,6 @@ bool InitSensorPeriph(){
     HMC5883L_Init();
 
     Init_SensorDetective();
-    Init_Attitude();
 
     return true;
 }
@@ -95,6 +98,7 @@ void Process(){
         L3G4200D.int16.Y,
         L3G4200D.int16.Z,
     };
+
     struct Angle3D compass = {
         HMC5883L.int16.X,
         HMC5883L.int16.Y,
@@ -104,21 +108,32 @@ void Process(){
     acceleration = accel;
     lastAngularSpeed = angularSpeed;
 
-    // TODO: Kalman Filter
-
+    //Init_quaternion(acceleration);
+    //accel = getAngle();
+    //acceleration.yaw = accel.pitch*180/3.141596;
+    //acceleration.pitch *= 180.0;
+    //lastAngularSpeed = accel;
     AHRSupdate(angularSpeed, accel, compass);
+    //IMUupdate(angularSpeed, accel);
+/*
+    struct Angle3D EularAngle = {
+        atan2(-accel.pitch, accel.yaw) * 57.296,
+        atan2(accel.roll, sqrt(accel.pitch*accel.pitch+accel.yaw*accel.yaw)) * 57.296,
+        0,
+    };
+*/
+    xAttitude = getAngle();
+    //xAttitude = EularAngle;
 
-    // Conplementary filter
-    xAttitude = getAngle(angularSpeed, accel, compass);
-    // Make a unit vector of force
-
+    //kprintf("%f, %f, %f\r\n", xAttitude.roll, xAttitude.pitch, xAttitude.yaw);
     sendSensorInfo();
 }
 
 #define GYRO_DRDY 0x01
 #define ACCEL_DRDY 0x02
 void SensorTask(void *arg){
-    HAL_NVIC_EnableIRQ(TIM4_IRQn);
+    HAL_NVIC_EnableIRQ(TIM5_IRQn);
+    Init_Attitude();
     while(1){
         /* Read Sensor */
         L3G4200D_Recv();
@@ -128,14 +143,14 @@ void SensorTask(void *arg){
         /* Process */
         Process();
 
-        kputs("SensorTask\r\n");
+        //kputs("SensorTask\r\n");
         // Timer interrupt will wake up this task
         vTaskSuspend(recvTaskHandle);
     }
 }
 
 
-TIM_HandleTypeDef TIM4_Handle;
+TIM_HandleTypeDef TIM5_Handle;
 
 void Init_SensorDetective()
 {
@@ -145,12 +160,12 @@ void Init_SensorDetective()
     __TIM5_CLK_ENABLE();
 
     TIM5_Handle.Instance = TIM5;
-    TIM5_Handle.Init.Prescaler = ;
+    TIM5_Handle.Init.Prescaler = 0;
     TIM5_Handle.Init.Period = 450000;
     TIM5_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     TIM5_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
 
-    status = HAL_TIM_Base_Init(&TIM4_Handle);
+    status = HAL_TIM_Base_Init(&TIM5_Handle);
     if( HAL_OK != status ){ return; }
 
     HAL_NVIC_SetPriority(TIM5_IRQn, 13, 0);
@@ -161,9 +176,9 @@ void Init_SensorDetective()
 
 void TIM5_IRQHandler(void){
     /* TIM Update event */
-    if(__HAL_TIM_GET_FLAG(&TIM4_Handle, TIM_FLAG_UPDATE) != RESET) {
-        if(__HAL_TIM_GET_ITSTATUS(&TIM4_Handle, TIM_IT_UPDATE) !=RESET) {
-            __HAL_TIM_CLEAR_IT(&TIM4_Handle, TIM_IT_UPDATE);
+    if(__HAL_TIM_GET_FLAG(&TIM5_Handle, TIM_FLAG_UPDATE) != RESET) {
+        if(__HAL_TIM_GET_ITSTATUS(&TIM5_Handle, TIM_IT_UPDATE) !=RESET) {
+            __HAL_TIM_CLEAR_IT(&TIM5_Handle, TIM_IT_UPDATE);
             if(pdTRUE == xTaskResumeFromISR(recvTaskHandle)){
                 taskYIELD();
             }
@@ -171,9 +186,9 @@ void TIM5_IRQHandler(void){
     }
 }
 
-#define Kp 2.0f
-#define Ki 0.005f
-#define halfT 0.5f                // half the sample period
+#define sampleFreq 200.0f
+#define twoKpDef (2.0f * 0.5f)
+#define twoKiDef (2.0f * 0.0f)
 
 float q0 = 1, q1 = 0, q2 = 0, q3 = 0;
 float exInt = 0, eyInt = 0, ezInt = 0;
@@ -198,10 +213,6 @@ void Init_quaternion(struct Angle3D EulerAngle){
 
 
 void Init_Attitude(){
-    const float Time = 0.005f;
-    const float gyroScale = 0.0074f;
-    
-    L3G4200D_Recv();
     ADXL345_Recv();
     HMC5883L_Recv();
 
@@ -211,62 +222,21 @@ void Init_Attitude(){
         ADXL345.int16.Y,
         ADXL345.int16.Z,
     };
-    struct Angle3D angularSpeed = {
-        L3G4200D.int16.X,
-        L3G4200D.int16.Y,
-        L3G4200D.int16.Z,
+
+    struct Angle3D EularAngle = {
+        atan2(-accel.pitch, accel.yaw),
+        atan2(accel.roll, sqrt(accel.pitch*accel.pitch+accel.yaw*accel.yaw)),
+        0,
     };
 
-    // Convert to 360 degree
-    struct Angle3D gyroEstimateAngle = {
-        xAttitude.roll  + angularSpeed.roll  * Time * gyroScale,
-        xAttitude.pitch + angularSpeed.pitch * Time * gyroScale,
-        xAttitude.yaw   + angularSpeed.yaw   * Time * gyroScale,
-    };
-    if(gyroEstimateAngle.roll  > 180) gyroEstimateAngle.roll  -= 360;
-    if(gyroEstimateAngle.roll  <-180) gyroEstimateAngle.roll  += 360;
-    if(gyroEstimateAngle.pitch > 180) gyroEstimateAngle.pitch -= 360;
-    if(gyroEstimateAngle.pitch <-180) gyroEstimateAngle.pitch += 360;
-    if(gyroEstimateAngle.yaw   > 180) gyroEstimateAngle.yaw   -= 360;
-    if(gyroEstimateAngle.yaw   <-180) gyroEstimateAngle.yaw   += 360;
-    gyroAngle = gyroEstimateAngle;
-
-    // Make a unit vector of force
-    float F = sqrtf(accel.roll * accel.roll + accel.pitch * accel.pitch + 
-            accel.yaw * accel.yaw);
-    float F_inverse = 1 / F;
-    float x = accel.roll * F_inverse;
-    float y = accel.pitch * F_inverse;
-    float z = accel.yaw * F_inverse;
-
-    struct Angle3D AccelEstimateAngle = {
-        getRoll(x,y,z,gyroEstimateAngle.roll),
-        -getPitch(x,y,z,gyroEstimateAngle.pitch),
-        gyroEstimateAngle.yaw, /* Accelerometer can not estimate yaw */
-    };
-    accelAngle = AccelEstimateAngle;
-
-    struct Angle3D EularAngle = 
-        ComplementaryFilter(&gyroEstimateAngle,&AccelEstimateAngle);
     Init_quaternion(EularAngle);
 }
-
-void AHRSupdate(struct Angle3D groy, struct Angle3D accel, struct Angle3D compass){
+/*
+void IMUupdate(struct Angle3D groy, struct Angle3D accel)
+{
     float norm;
-    float hx, hy, hz, bx, bz;
-    float vx, vy, vz, wx, wy, wz;
+    float vx, vy, vz;
     float ex, ey, ez;
-
-    float q0q0 = q0*q0;
-    float q0q1 = q0*q1;
-    float q0q2 = q0*q2;
-    float q0q3 = q0*q3;
-    float q1q1 = q1*q1;
-    float q1q2 = q1*q2;
-    float q1q3 = q1*q3;
-    float q2q2 = q2*q2;
-    float q2q3 = q2*q3;
-    float q3q3 = q3*q3;
 
     norm = sqrt(groy.roll * groy.roll + groy.pitch * groy.pitch + 
             groy.yaw * groy.yaw);
@@ -274,33 +244,13 @@ void AHRSupdate(struct Angle3D groy, struct Angle3D accel, struct Angle3D compas
     groy.pitch /= norm;
     groy.yaw /= norm;
 
-    norm = sqrt(compass.roll * compass.roll + compass.pitch * compass.pitch + 
-            compass.yaw * compass.yaw);
-    compass.roll /= norm;
-    compass.pitch /= norm;
-    compass.yaw /= norm;
+    vx = 2*(q1*q3 - q0*q2);
+    vy = 2*(q0*q1 + q2*q3);
+    vz = q0*q0 - q1*q1 -q2*q2 + q3*q3;
 
-    hx = 2*compass.roll*(0.5 - q2q2 - q3q3) + 2*compass.pitch*(q1q2 - q0q3) +
-         2*compass.yaw*(q1q3 + q0q2);
-    hy = 2*compass.roll*(q1q2 - q0q3) + 2*compass.pitch*(0.5 - q1q1 - q3q3) +
-         2*compass.yaw*(q3q3 + q0q1);
-    hz = 2*compass.roll*(q1q3 - q0q2) + 2*compass.pitch*(q2q3 - q0q1) +
-         2*compass.yaw*(0.5 - q1q1 + q2q2);
-
-    bx = sqrt((hx*hx) + (hy*hy));
-    bz = hz;
-
-    vx = 2*(q1q3 - q0q2);
-    vy = 2*(q0q1 + q2q3);
-    vz = q0q0 - q1q1 -q2q2 + q3q3;
-
-    wx = 2*bx*(0.5 - q2q2 - q3q3) + 2*bz*(q1q3 - q0q2);
-    wy = 2*bx*(q1q2 - q0q3) + 2*bz*(q0q1 + q2q3);
-    wz = 2*bx*(q0q2 + q1q3) + 2*bz*(0.5 - q1q1 - q2q2);
-
-    ex = (accel.pitch*vz - accel.yaw*vy) + (compass.pitch*wz - compass.yaw*wy);
-    ey = (accel.yaw*vx - accel.roll*vz) + (compass.yaw*wx - compass.roll*wz);
-    ez = (accel.roll*vy - accel.pitch*vx) + (compass.roll*wy - compass.pitch*wx);
+    ex = (accel.pitch*vz - accel.yaw*vy);
+    ey = (accel.yaw*vx - accel.roll*vz);
+    ez = (accel.roll*vy - accel.pitch*vx);
 
     exInt = exInt + ex*Ki;
     eyInt = eyInt + ey*Ki;
@@ -321,12 +271,123 @@ void AHRSupdate(struct Angle3D groy, struct Angle3D accel, struct Angle3D compas
     q2 /= norm;
     q3 /= norm;
 }
+*/
+float twoKp = twoKpDef;
+float twoKi = twoKiDef;
+void AHRSupdate(struct Angle3D groy, struct Angle3D accel, struct Angle3D compass){
+    float norm;
+    float hx, hy, hz, bx, bz;
+    float halfvx, halfvy, halfvz, halfwx, halfwy, halfwz;
+    float halfex, halfey, halfez, qa, qb, qc;
+
+    // Auxiliary variables to avoid repeated arithmetic
+    float q0q0 = q0*q0;
+    float q0q1 = q0*q1;
+    float q0q2 = q0*q2;
+    float q0q3 = q0*q3;
+    float q1q1 = q1*q1;
+    float q1q2 = q1*q2;
+    float q1q3 = q1*q3;
+    float q2q2 = q2*q2;
+    float q2q3 = q2*q3;
+    float q3q3 = q3*q3;
+
+    // Normalise magnetometer measurement
+    norm = invSqrt(accel.roll * accel.roll + accel.pitch * accel.pitch + 
+            accel.yaw * accel.yaw);
+    accel.roll *= norm;
+    accel.pitch *= norm;
+    accel.yaw *= norm;
+
+    //Normalise accelerometer measurement
+    norm = sqrt(compass.roll * compass.roll + compass.pitch * compass.pitch + 
+            compass.yaw * compass.yaw);
+    compass.roll *= norm;
+    compass.pitch *= norm;
+    compass.yaw *= norm;
+
+    hx = 2.0f * (compass.roll*(0.5 - q2q2 - q3q3) + compass.pitch*(q1q2 - q0q3) +
+         compass.yaw*(q1q3 + q0q2));
+    hy = 2.0f * (compass.roll*(q1q2 + q0q3) + compass.pitch*(0.5 - q1q1 - q3q3) +
+         compass.yaw*(q2q3 - q0q1));
+    hz = 2.0f * (compass.roll*(q1q3 - q0q2) + compass.pitch*(q2q3 + q0q1) +
+         compass.yaw*(0.5 - q1q1 - q2q2));
+
+    bx = sqrt((hx*hx) + (hy*hy));
+    bz = hz;
+
+    halfvx = (q1q3 - q0q2);
+    halfvy = (q0q1 + q2q3);
+    halfvz = q0q0 - 0.5f + q3q3;
+
+    halfwx = bx*(0.5 - q2q2 - q3q3) + bz*(q1q3 - q0q2);
+    halfwy = bx*(q1q2 - q0q3) + bz*(q0q1 + q2q3);
+    halfwz = bx*(q0q2 + q1q3) + bz*(0.5 - q1q1 - q2q2);
+
+    halfex = (accel.pitch*halfvz - accel.yaw*halfvy) + 
+        (compass.pitch*halfwz - compass.yaw*halfwy);
+    halfey = (accel.yaw*halfvx - accel.roll*halfvz) + 
+        (compass.yaw*halfwx - compass.roll*halfwz);
+    halfez = (accel.roll*halfvy - accel.pitch*halfvx) + 
+        (compass.roll*halfwy - compass.pitch*halfwx);
+
+    if(twoKi > 0.0f) {
+        exInt += halfex*twoKi * (1.0f/sampleFreq);
+        eyInt += halfey*twoKi * (1.0f/sampleFreq);
+        ezInt += halfez*twoKi * (1.0f/sampleFreq);
+
+        groy.roll += exInt;
+        groy.pitch += eyInt;
+        groy.yaw += ezInt;
+    }
+    else{
+        exInt = 0;
+        eyInt = 0;
+        ezInt = 0;
+    }
+
+    groy.roll += twoKp * halfex;
+    groy.pitch += twoKp * halfey;
+    groy.yaw += twoKp * halfez;
+
+    groy.roll *= (0.5f * (1.0f / sampleFreq));
+    groy.pitch *= (0.5f * (1.0f / sampleFreq));
+    groy.yaw *= (0.5f * (1.0f / sampleFreq));
+
+    qa = q0;
+    qb = q1;
+    qc = q2;
+
+    q0 += (-qb*groy.roll - qc*groy.pitch - q3*groy.yaw);
+    q1 += (qa*groy.roll + qc*groy.yaw - q3*groy.pitch);
+    q2 += (qa*groy.pitch - qb*groy.yaw + q3*groy.roll);
+    q3 += (qa*groy.yaw + qb*groy.pitch - qc*groy.roll);
+
+    norm = invSqrt(q0*q0 + q1*q1 + q2*q2 + q3*q3);
+    q0 *= norm;
+    q1 *= norm;
+    q2 *= norm;
+    q3 *= norm;
+}
+
+float invSqrt(float x){
+
+    float halfx = 0.5f * x;
+    float y = x;
+
+    long i = *(long*)&y;
+    i = 0x5f3759df - (i>>1);
+    y = *(float*)&i;
+    y = y * (1.5f - (halfx * y * y));
+
+    return y;
+}
 
 struct Angle3D getAngle(){
     return (struct Angle3D){
-        atan2(2*q2*q3 + 2*q0*q1, -2*q1*q1-2*q2*q2+1),
-        asin(-2*q1*q3 + 2*q0*q2),
-        atan2(2*q1*q2 + 2*q0*q3, -2*q2*q2-2*q3*q3+1),
+        atan2(2*q2*q3 + 2*q0*q1, -2*q1*q1-2*q2*q2+1)*57.296,
+        asin(-2*q1*q3 + 2*q0*q2)*57.296,
+        atan2(2*q1*q2 + 2*q0*q3, -2*q2*q2-2*q3*q3+1)*57.296,
     };
 }
 

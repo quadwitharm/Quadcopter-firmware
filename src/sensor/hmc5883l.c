@@ -37,12 +37,12 @@ void HMC5883L_Init(){
 }
 
 void HMC5883L_Recv(){
-    uint8_t status;
-    READ_HMC5883L(StatusReg, &status, 1);
+    //uint8_t status;
+    //READ_HMC5883L(StatusReg, &status, 1);
 
-    if (status & 0x00000010){
-        return;
-    }
+    //if (status & 0x00000010){
+    //    return;
+    //}
      
     uint8_t tmpbuff[6];
     READ_HMC5883L(DataXMSB, tmpbuff, 6);
