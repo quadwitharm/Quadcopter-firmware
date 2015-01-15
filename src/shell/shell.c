@@ -51,9 +51,11 @@ static void ShellTask(void *args){
         switch(type){
             case 0x0:
                 setControllerEnable(false);
+                UART_send_IT((uint8_t []){0x00,0x00},2);
                 break;
             case 0x1:
                 setControllerEnable(true);
+                UART_send_IT((uint8_t []){0x00,0x01},2);
                 break;
             case 0x2:
             case 0x3:break;
@@ -79,6 +81,7 @@ static void handlePID(){
     setPidParameter(which,KP,buf[0]);
     setPidParameter(which,KI,buf[1]);
     setPidParameter(which,KD,buf[2]);
+    UART_send_IT((uint8_t []){0x00,0x04},2);
 }
 
 static void handleChangeSetPoint(){
@@ -97,6 +100,7 @@ static void handleChangeSetPoint(){
     }else{
         
     }
+    UART_send_IT((uint8_t []){0x00,0x05},2);
 }   
 
 static void handleTextCommand(){
@@ -114,6 +118,7 @@ static void handleTextCommand(){
     }else{
         toExec(argc,argv);
     }
+    UART_send_IT((uint8_t []){0x00,0x06},2);
 }
 
 static int parseCommand(char *line, char **argv){

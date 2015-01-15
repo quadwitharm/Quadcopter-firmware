@@ -52,4 +52,6 @@ void sendControlInfo(){
     UART_send((uint8_t []){head,0x02},2);
     UART_send((uint8_t *)(float []){pids[ROLL].out,
         pids[PITCH].out,pids[YAW].out},12);
+    UART_send((uint8_t []){head,0x03},2);
+    UART_send((uint8_t *)&setPoint[THR_C],4);
 }
