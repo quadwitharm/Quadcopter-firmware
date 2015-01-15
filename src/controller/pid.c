@@ -70,7 +70,7 @@ float runPID_warp(pid_context_t * p,float setpoint,float input,
 */
 float passPID(pid_context_t * p,float setpoint,float input){
     p->prev_in = input;
-    p->integral = setpoint;
+    p->integral = p->out = setpoint;
 
     if(p->integral > p->max){p->integral = p->max;}
     if(p->integral < p->min){p->integral = p->min;}

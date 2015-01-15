@@ -39,12 +39,12 @@ bool InitSensorPeriph(){
     ADXL345_Init();
     HMC5883L_Init();
 
-    Init_SensorDetective();
-
     return true;
 }
 
 bool InitSensorTask(){
+    Init_SensorDetective();
+
     /* FreeRTOS Tasks */
     portBASE_TYPE ret;
     ret = xTaskCreate(SensorTask,
@@ -138,6 +138,17 @@ void Process(){
 
 #define GYRO_DRDY 0x01
 #define ACCEL_DRDY 0x02
+
+void SensorSet(bool enable){
+    if(enable){
+        HAL_NVIC_EnableIRQ(TIM4_IRQn);
+        InitSensorTask();
+    }else{
+        HAL_NVIC_DisableIRQ(TIM4_IRQn);
+        vTaskSuspend(recvTaskHandle);
+    }
+}
+
 void SensorTask(void *arg){
     HAL_NVIC_EnableIRQ(TIM4_IRQn);
     while(1){
