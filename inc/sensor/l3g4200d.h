@@ -26,7 +26,7 @@ extern "C" {
     extern struct L3G4200D L3G4200D;
 
     void L3G4200D_Init();
-    void L3G4200D_Recv(void*);
+    void L3G4200D_Recv();
     void L3G4200D_Process(void*);
 
     /* Device Address */

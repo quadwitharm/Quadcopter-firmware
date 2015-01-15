@@ -40,6 +40,8 @@ void TIM2_IRQHandler(void){
         if(__HAL_TIM_GET_ITSTATUS(&TIM2_Handle, TIM_IT_UPDATE) !=RESET) {
             __HAL_TIM_CLEAR_IT(&TIM2_Handle, TIM_IT_UPDATE);
             if(pdTRUE == xTaskResumeFromISR(controllerTaskHandle)){
+                kputs("TIM2_IRQHandler Yield\r\n");
+//               vPortYield();
                 taskYIELD();
             }
         }
@@ -57,6 +59,7 @@ static void Controller_Task(void *args){
         sendControlInfo();
 
         // Timer interrupt will wake up this task
+        kputs("Controller_Task Suspend\r\n");
         vTaskSuspend(controllerTaskHandle);
     }
 }

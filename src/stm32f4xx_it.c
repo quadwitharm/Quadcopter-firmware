@@ -1,11 +1,11 @@
 /**
  ******************************************************************************
- * @file    FreeRTOS/FreeRTOS_ThreadCreation/Src/stm32f4xx_it.c 
+ * @file    FreeRTOS/FreeRTOS_ThreadCreation/Src/stm32f4xx_it.c
  * @author  MCD Application Team
  * @version V1.1.0
  * @date    26-June-2014
  * @brief   Main Interrupt Service Routines.
- *          This file provides template for all exceptions handler and 
+ *          This file provides template for all exceptions handler and
  *          peripherals interrupt service routine.
  ******************************************************************************
  * @attention
@@ -18,8 +18,8 @@
  *
  *        http://www.st.com/software_license_agreement_liberty_v2
  *
- * Unless required by applicable law or agreed to in writing, software 
- * distributed under the License is distributed on an "AS IS" BASIS, 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -29,9 +29,11 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_it.h"
+#include "stm32f4xx_hal_gpio.h"
 #include "cmsis_os.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "clib.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -131,18 +133,15 @@ void SysTick_Handler(void)
 
 /******************************************************************************/
 /*                 STM32F4xx Peripherals Interrupt Handlers                   */
-/*  Add here the Interrupt Handler for the used peripheral(s) (PPP), for the  */
+/*  Add here the Interrupt Handler for the used peripheral(s) (DRDY),for the  */
 /*  available peripheral interrupt handler's name please refer to the startup */
 /*  file (startup_stm32f4xx.s).                                               */
 /******************************************************************************/
 
 /**
- * @brief  This function handles PPP interrupt request.
+ * @brief  Sensor DRDY interrupt, PG10, PG11, PG12
  * @param  None
  * @retval None
  */
-/*void PPP_IRQHandler(void)
-  {
-  }*/
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

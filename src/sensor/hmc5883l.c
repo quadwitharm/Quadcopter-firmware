@@ -14,11 +14,11 @@ void Write_HMC5883L(uint8_t Register, uint8_t content){
     while(!I2C_Master_Transmit(HMC5883L_START, buf, 2));
 }
 
-void READ_HMC5883L(uint8_t addr,uint8_t buf[]){
+void READ_HMC5883L(uint8_t addr,uint8_t buf[], uint8_t size){
     buf[0] = addr;
     do{
-        I2C_Master_Transmit(HMC5883L_START, buf, 1);
-    }while(!I2C_Master_Receive(HMC5883L_START, buf, 1));
+        I2C_Master_Transmit(HMC5883L_START, buf, size);
+    }while(!I2C_Master_Receive(HMC5883L_START, buf, size));
 };
 
 void HMC5883L_Init(){
@@ -27,7 +27,7 @@ void HMC5883L_Init(){
     /* average 8 per measurement output, output data rate is 75Hz */
     Write_HMC5883L(CRegA, 0b01111000);
 
-    /* +- 1.3Ga */
+    /* +- 1.3 Ga, 1090 Gain */
     Write_HMC5883L(CRegB, 0b00100000);
 
     /* single-measurement mode */
@@ -36,17 +36,27 @@ void HMC5883L_Init(){
     kputs("Control Register for HMC5883L had been set\r\n");
 }
 
-void HMC5883L_Recv(void *arg){
-    /* TODO: check if data availible*/
+void HMC5883L_Recv(){
+    uint8_t status;
+    READ_HMC5883L(StatusReg, &status, 1);
 
-    READ_HMC5883L(DataXMSB, &HMC5883L.uint8.XH);
-    READ_HMC5883L(DataXLSB, &HMC5883L.uint8.XL);
+    if (status & 0x00000010){
+        return;
+    }
+     
+    uint8_t tmpbuff[6];
+    READ_HMC5883L(DataXMSB, tmpbuff, 6);
 
-    READ_HMC5883L(DataYMSB, &HMC5883L.uint8.YH);
-    READ_HMC5883L(DataYLSB, &HMC5883L.uint8.YL);
+    HMC5883L.uint8.XH = tmpbuff[0];
+    HMC5883L.uint8.XL = tmpbuff[1];
 
-    READ_HMC5883L(DataZMSB, &HMC5883L.uint8.ZH);
-    READ_HMC5883L(DataZLSB, &HMC5883L.uint8.ZL);
+    HMC5883L.uint8.YH = tmpbuff[2];
+    HMC5883L.uint8.YL = tmpbuff[3];
 
-    setDataReady(HMC58831_DRDY_BIT);
+    HMC5883L.uint8.ZH = tmpbuff[4];
+    HMC5883L.uint8.ZL = tmpbuff[5];
+
+    /* single-measurement mode */
+    Write_HMC5883L(ModeReg, 0b00000001);
+    
 }

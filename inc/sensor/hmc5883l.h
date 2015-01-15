@@ -24,7 +24,7 @@ extern "C" {
     };
 
     void HMC5883L_Init();
-    void HMC5883L_Recv(void*);
+    void HMC5883L_Recv();
     void HMC5883L_Process(void*);
 
     /* Device Address */

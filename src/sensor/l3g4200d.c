@@ -27,10 +27,13 @@ void L3G4200D_Init(){
     /* ODR 800Hz, Cut-off: 30 */
     Write_L3G4200D(CTRL_REG1, 0b11001111);
 
+    /* DRDY INT2 */
+    Write_L3G4200D(CTRL_REG3, 0b00011000);
+
     /* Block data update, 250dps (0.00875 * value degree per second) */
     Write_L3G4200D(CTRL_REG4, 0b10000000);
 
-#if 1
+#if 0
     /* Enable FIFO & reboot memory content */
     Write_L3G4200D(CTRL_REG5, 0b11000000);
 
@@ -41,13 +44,9 @@ void L3G4200D_Init(){
     kputs("Control Register for L3G4200D had been set\r\n");
 }
 
-void L3G4200D_Recv(void *arg){
-    uint8_t FIFO_STATUS;
-    READ_L3G4200D(FIFO_SRC_REG, &FIFO_STATUS);
-    /* Data not available yet */
-    if(FIFO_STATUS & 0b00100000){
-        return;
-    }
+
+
+void L3G4200D_Recv(){
 
     READ_L3G4200D(OUT_X_H, &L3G4200D.uint8.XH);
     READ_L3G4200D(OUT_X_L, &L3G4200D.uint8.XL);
@@ -56,5 +55,4 @@ void L3G4200D_Recv(void *arg){
     READ_L3G4200D(OUT_Z_H, &L3G4200D.uint8.ZH);
     READ_L3G4200D(OUT_Z_L, &L3G4200D.uint8.ZL);
 
-    setDataReady(L3G4200D_DRDY_BIT);
 }
