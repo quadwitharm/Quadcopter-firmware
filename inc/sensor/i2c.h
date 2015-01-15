@@ -6,6 +6,8 @@
 #include "stm32f4xx_hal_i2c.h"
 
 bool I2C_Init();
+void I2C_PowerOn();
+void I2C_PowerOff();
 bool I2C_Master_Transmit(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
 bool I2C_Master_Receive(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
 
