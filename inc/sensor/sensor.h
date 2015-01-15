@@ -9,18 +9,8 @@ struct Angle3D{
     float yaw;
 };
 
-struct Vector3D{
-    float x;
-    float y;
-    float z;
-};
-
 extern struct Angle3D xAttitude;
 extern struct Angle3D lastAngularSpeed;
-
-extern struct Vector3D position;
-extern struct Vector3D velocity;
-extern struct Vector3D acceleration;
 
 bool InitSensorPeriph();
 bool InitSensorTask();

@@ -22,12 +22,13 @@ struct Angle3D lastAngularSpeed;
 static struct Angle3D gyroAngle;
 static struct Angle3D accelAngle;
 
-struct Vector3D position;
-struct Vector3D velocity;
-struct Vector3D acceleration;
+struct Angle3D acceleration;
 
 void SensorTask(void *arg);
 void Init_SensorDetective();
+void Init_Attitude();
+struct Angle3D getAngle();
+void AHRSupdate(struct Angle3D, struct Angle3D, struct Angle3D);
 
 bool InitSensorPeriph(){
     kputs("I2C: Initialing ...\r\n");
@@ -40,6 +41,7 @@ bool InitSensorPeriph(){
     HMC5883L_Init();
 
     Init_SensorDetective();
+    Init_Attitude();
 
     return true;
 }
@@ -81,11 +83,9 @@ float getPitch(float x, float y, float z,float estimatePitch){
 }
 
 void Process(){
-    const float Time = 0.005f;
-    const float gyroScale = 0.0074f;
 
     // Read from shared memory
-    struct Vector3D accel = {
+    struct Angle3D accel = {
         ADXL345.int16.X,
         ADXL345.int16.Y,
         ADXL345.int16.Z,
@@ -95,42 +95,21 @@ void Process(){
         L3G4200D.int16.Y,
         L3G4200D.int16.Z,
     };
+    struct Angle3D compass = {
+        HMC5883L.int16.X,
+        HMC5883L.int16.Y,
+        HMC5883L.int16.Z,
+    };
 
     acceleration = accel;
     lastAngularSpeed = angularSpeed;
 
     // TODO: Kalman Filter
 
-    // Convert to 360 degree
-    struct Angle3D gyroEstimateAngle = {
-        xAttitude.roll  + angularSpeed.roll  * Time * gyroScale,
-        xAttitude.pitch + angularSpeed.pitch * Time * gyroScale,
-        xAttitude.yaw   + angularSpeed.yaw   * Time * gyroScale,
-    };
-    if(gyroEstimateAngle.roll  > 180) gyroEstimateAngle.roll  -= 360;
-    if(gyroEstimateAngle.roll  <-180) gyroEstimateAngle.roll  += 360;
-    if(gyroEstimateAngle.pitch > 180) gyroEstimateAngle.pitch -= 360;
-    if(gyroEstimateAngle.pitch <-180) gyroEstimateAngle.pitch += 360;
-    if(gyroEstimateAngle.yaw   > 180) gyroEstimateAngle.yaw   -= 360;
-    if(gyroEstimateAngle.yaw   <-180) gyroEstimateAngle.yaw   += 360;
-    gyroAngle = gyroEstimateAngle;
-
-    // Make a unit vector of force
-    float F = sqrtf(accel.x * accel.x + accel.y * accel.y + accel.z * accel.z);
-    float F_inverse = 1 / F;
-    float x = accel.x * F_inverse;
-    float y = accel.y * F_inverse;
-    float z = accel.z * F_inverse;
-
-    struct Angle3D AccelEstimateAngle = {
-        getRoll(x,y,z,gyroEstimateAngle.roll),
-        -getPitch(x,y,z,gyroEstimateAngle.pitch),
-        gyroEstimateAngle.yaw, /* Accelerometer can not estimate yaw */
-    };
-    accelAngle = AccelEstimateAngle;
+    AHRSupdate(angularSpeed, accel, compass);
 
     // Conplementary filter
-    xAttitude = ComplementaryFilter(&gyroEstimateAngle,&AccelEstimateAngle);
+    xAttitude = getAngle(angularSpeed, accel, compass);
     // Make a unit vector of force
 
     sendSensorInfo();
@@ -200,6 +179,7 @@ void TIM4_IRQHandler(void){
 float q0 = 1, q1 = 0, q2 = 0, q3 = 0;
 float exInt = 0, eyInt = 0, ezInt = 0;
 void Init_quaternion(struct Angle3D EulerAngle){
+
     float halfP = EulerAngle.pitch/2.0f;
     float halfR = EulerAngle.roll/2.0f;
     float halfY = EulerAngle.yaw/2.0f;
@@ -217,8 +197,62 @@ void Init_quaternion(struct Angle3D EulerAngle){
     q3 = sinY*cosR*cosP + cosY*sinR*sinP;
 }
 
-void AHRSupdate(struct Angle3D groy, struct Angle3D accel, struct Angle3D compass)
-{
+
+void Init_Attitude(){
+    const float Time = 0.005f;
+    const float gyroScale = 0.0074f;
+    
+    L3G4200D_Recv();
+    ADXL345_Recv();
+    HMC5883L_Recv();
+
+    // Read from shared memory
+    struct Angle3D accel = {
+        ADXL345.int16.X,
+        ADXL345.int16.Y,
+        ADXL345.int16.Z,
+    };
+    struct Angle3D angularSpeed = {
+        L3G4200D.int16.X,
+        L3G4200D.int16.Y,
+        L3G4200D.int16.Z,
+    };
+
+    // Convert to 360 degree
+    struct Angle3D gyroEstimateAngle = {
+        xAttitude.roll  + angularSpeed.roll  * Time * gyroScale,
+        xAttitude.pitch + angularSpeed.pitch * Time * gyroScale,
+        xAttitude.yaw   + angularSpeed.yaw   * Time * gyroScale,
+    };
+    if(gyroEstimateAngle.roll  > 180) gyroEstimateAngle.roll  -= 360;
+    if(gyroEstimateAngle.roll  <-180) gyroEstimateAngle.roll  += 360;
+    if(gyroEstimateAngle.pitch > 180) gyroEstimateAngle.pitch -= 360;
+    if(gyroEstimateAngle.pitch <-180) gyroEstimateAngle.pitch += 360;
+    if(gyroEstimateAngle.yaw   > 180) gyroEstimateAngle.yaw   -= 360;
+    if(gyroEstimateAngle.yaw   <-180) gyroEstimateAngle.yaw   += 360;
+    gyroAngle = gyroEstimateAngle;
+
+    // Make a unit vector of force
+    float F = sqrtf(accel.roll * accel.roll + accel.pitch * accel.pitch + 
+            accel.yaw * accel.yaw);
+    float F_inverse = 1 / F;
+    float x = accel.roll * F_inverse;
+    float y = accel.pitch * F_inverse;
+    float z = accel.yaw * F_inverse;
+
+    struct Angle3D AccelEstimateAngle = {
+        getRoll(x,y,z,gyroEstimateAngle.roll),
+        -getPitch(x,y,z,gyroEstimateAngle.pitch),
+        gyroEstimateAngle.yaw, /* Accelerometer can not estimate yaw */
+    };
+    accelAngle = AccelEstimateAngle;
+
+    struct Angle3D EularAngle = 
+        ComplementaryFilter(&gyroEstimateAngle,&AccelEstimateAngle);
+    Init_quaternion(EularAngle);
+}
+
+void AHRSupdate(struct Angle3D groy, struct Angle3D accel, struct Angle3D compass){
     float norm;
     float hx, hy, hz, bx, bz;
     float vx, vy, vz, wx, wy, wz;
@@ -289,8 +323,7 @@ void AHRSupdate(struct Angle3D groy, struct Angle3D accel, struct Angle3D compas
     q3 /= norm;
 }
 
-struct Angle3D getAngle()
-{
+struct Angle3D getAngle(){
     return (struct Angle3D){
         atan2(2*q2*q3 + 2*q0*q1, -2*q1*q1-2*q2*q2+1),
         asin(-2*q1*q3 + 2*q0*q2),
@@ -304,8 +337,8 @@ void sendSensorInfo(){
     UART_send((uint8_t *)(float []){lastAngularSpeed.roll,
         lastAngularSpeed.pitch,lastAngularSpeed.yaw},12);
     UART_send((uint8_t []){head,0x01},2);
-    UART_send((uint8_t *)(float []){acceleration.x,
-        acceleration.y,acceleration.z},12);
+    UART_send((uint8_t *)(float []){acceleration.roll,
+        acceleration.pitch,acceleration.yaw},12);
     UART_send((uint8_t []){head,0x02},2);
     UART_send((uint8_t *)(float []){gyroAngle.roll,
         gyroAngle.pitch,gyroAngle.yaw},12);
