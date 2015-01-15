@@ -149,7 +149,7 @@ void SensorTask(void *arg){
         /* Process */
         Process();
 
-        kputs("SensorTask\r\n");
+//        kputs("SensorTask\r\n");
         // Timer interrupt will wake up this task
         vTaskSuspend(recvTaskHandle);
     }
@@ -181,7 +181,6 @@ void Init_SensorDetective()
 }
 
 void TIM4_IRQHandler(void){
-    kputs("TIM4\r\n");
     /* TIM Update event */
     if(__HAL_TIM_GET_FLAG(&TIM4_Handle, TIM_FLAG_UPDATE) != RESET) {
         if(__HAL_TIM_GET_ITSTATUS(&TIM4_Handle, TIM_IT_UPDATE) !=RESET) {

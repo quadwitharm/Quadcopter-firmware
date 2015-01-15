@@ -15,7 +15,8 @@ HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate){
             .StopBits = UART_STOPBITS_1,
             .Parity = UART_PARITY_NONE,
             .HwFlowCtl = UART_HWCONTROL_NONE,
-            .Mode = UART_MODE_TX_RX
+            .Mode = UART_MODE_TX_RX,
+            .OverSampling = UART_OVERSAMPLING_16,
         }
     };
     _rx_wait_sem = xSemaphoreCreateBinary();
@@ -36,7 +37,13 @@ HAL_StatusTypeDef UART_send(uint8_t* data, uint16_t length){//blocking call
 }
 
 HAL_StatusTypeDef UART_recv(uint8_t* buffer, uint16_t length){
-    HAL_StatusTypeDef status = HAL_UART_Receive(&UartHandle, (uint8_t *)buffer, length, 10000);
+    HAL_StatusTypeDef status;
+    for(;length>0;length--){
+        status = HAL_UART_Receive(&UartHandle, (uint8_t *)buffer, 1, 10000);
+        kprintf("%x ",buffer[0]);
+        buffer++;
+    }
+    //HAL_StatusTypeDef status = HAL_UART_Receive(&UartHandle, (uint8_t *)buffer, length, 10000);
     return status;
 }
 
@@ -53,9 +60,15 @@ void UART_send_IT(uint8_t* data, uint16_t length){
     while (!xSemaphoreTake(_tx_wait_sem, portMAX_DELAY));
 }
 
+uint8_t *tmpbuffer;
 void UART_recv_IT(uint8_t* buffer, uint16_t length){
-    HAL_UART_Receive_IT(&UartHandle, buffer, length);
-    while (!xSemaphoreTake(_rx_wait_sem, portMAX_DELAY));
+    for(;length>0;length--){
+        tmpbuffer = buffer;
+        HAL_UART_Receive_IT(&UartHandle, buffer, 1);
+        while (!xSemaphoreTake(_rx_wait_sem, portMAX_DELAY));
+        kprintf("%d ",buffer[0]);
+        buffer++;
+    }
 }
 
 void send_byte(char ch){
@@ -96,6 +109,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
 //        taskYIELD();
     }
 }
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle){
+    static signed portBASE_TYPE xHigherPriorityTaskWoken;
+    /* Set transmission flag: trasfer complete*/
+    kprintf("-%x ",UartHandle->ErrorCode);
+    *tmpbuffer = UartHandle->Instance->DR;
+    xSemaphoreGiveFromISR(_rx_wait_sem, &xHigherPriorityTaskWoken);
+    if (xHigherPriorityTaskWoken) {
+        taskYIELD();
+    }
+}
 
 void HAL_UART_MspInit(UART_HandleTypeDef *huart){
     GPIO_InitTypeDef GPIO_InitStruct = {.Mode = GPIO_MODE_AF_PP, .Pull = GPIO_NOPULL, .Speed = GPIO_SPEED_FAST};
@@ -127,7 +150,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
         GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
         HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-        HAL_NVIC_SetPriority(USART3_IRQn, 0, 1);
+        HAL_NVIC_SetPriority(USART3_IRQn, 12, 0);
         HAL_NVIC_EnableIRQ(USART3_IRQn);
     }else if(huart->Instance == UART4){// tx/rx: PA0/PA1, PC10/PC11
         __UART4_CLK_ENABLE();
@@ -148,7 +171,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
         GPIO_InitStruct.Pin = GPIO_PIN_2;
         HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-        HAL_NVIC_SetPriority(UART5_IRQn, 0, 1);
+        HAL_NVIC_SetPriority(UART5_IRQn, 12, 0);
         HAL_NVIC_EnableIRQ(UART5_IRQn);
     }else if(huart->Instance == USART6){// tx/rx: PC6/PC7, PG14/PG9
         __USART6_CLK_ENABLE();

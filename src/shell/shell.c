@@ -7,7 +7,6 @@
 
 #define BUFSIZE 128
 #define ARGV_SIZE 20
-
 static xTaskHandle shellTaskHandle;
 
 static void ShellTask(void *);
@@ -46,8 +45,8 @@ static void ShellTask(void *args){
     while(1){
         //puts( COMMAND_PROMPT );
         //gets(line, BUFSIZE);
-        UART_recv_IT(&type,1);//get command type
 
+        UART_recv_IT(&type,1);//get command type
         switch(type){
             case 0x0:
                 setControllerEnable(false);
@@ -98,16 +97,17 @@ static void handleChangeSetPoint(){
         UART_recv_IT((uint8_t *)buf,4);
         setSetPoint(THR_C,buf[0]);
     }else{
-        
+
     }
+    kprintf("%f %f %f\r\n",buf[0],buf[1],buf[2]);
     //UART_send_IT((uint8_t []){0x00,0x05},2);
-}   
+}
 
 static void handleTextCommand(){
     uint16_t len;
     char line[BUFSIZE];
     char *argv[ARGV_SIZE];
-    
+
     UART_recv_IT((uint8_t*)&len,2);
     UART_recv_IT((uint8_t*)line,len);
 
