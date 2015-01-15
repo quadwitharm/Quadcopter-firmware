@@ -88,18 +88,21 @@ static void ControllerUpdate(){
         runPID(&pids[PITCH_RATE], setPoint[PITCH_C], 
         sensorData[PITCH_RATE]),sensorData[PITCH]);
 
-    // Need refactor
-#if 0
-    if(/*rate mode*/){
-        yaw_out = runPID(&pid_yaw_r,/**/,/**/);
-    }else if(/*stablized mode*/){
-#endif
-        float yaw_out = runPID(&pids[YAW],
-            runPID(&pids[YAW_RATE], setPoint[YAW_C], 
-        sensorData[YAW_RATE]), sensorData[YAW]);
-#if 0
+    float yaw_out;
+    if(setPoint[YAW_C] < 0.5f){
+        //rete mode
+        //setPoint = rate -> to rate pid
+        yaw_out = runPID_warp(&pids[YAW],
+            passPID(&pids[YAW_RATE], setPoint[YAW_C], 
+            sensorData[YAW_RATE]), sensorData[YAW],180.0f,-180.0f);
+    }else{
+        //stabilized mode
+        //setPoint = angle = 0.0
+        yaw_out = runPID_warp(&pids[YAW],
+            runPID(&pids[YAW_RATE],0.0f, 
+            sensorData[YAW_RATE]), sensorData[YAW],180.0f,-180.0f);
     }
-#endif
+
 
     float throttle = setPoint[THR_C];/*should be radio input*/
 
