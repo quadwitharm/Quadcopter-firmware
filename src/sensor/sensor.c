@@ -26,6 +26,8 @@ struct Vector3D position;
 struct Vector3D velocity;
 struct Vector3D acceleration;
 
+static GPIO_InitTypeDef sensorPower;
+
 void SensorTask(void *arg);
 void Init_SensorDetective();
 
@@ -39,12 +41,23 @@ bool InitSensorPeriph(){
     ADXL345_Init();
     HMC5883L_Init();
 
-    Init_SensorDetective();
-
     return true;
 }
 
 bool InitSensorTask(){
+    Init_SensorDetective();
+
+    //power on
+    //__GPIOB_CLK_ENABLE()
+/*
+    sensorPower.Mode = GPIO_MODE_AF_PP;
+    sensorPower.Speed = GPIO_SPEED_HIGH;
+    sensorPower.Pin = GPIO_PIN_6;
+    HAL_GPIO_Init(GPIOB, &sensorPower);
+    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+*/
+    I2C_PowerOn();
+
     /* FreeRTOS Tasks */
     portBASE_TYPE ret;
     ret = xTaskCreate(SensorTask,
@@ -138,6 +151,22 @@ void Process(){
 
 #define GYRO_DRDY 0x01
 #define ACCEL_DRDY 0x02
+
+void SensorEnable(bool enable){
+
+    if(enable){
+        HAL_NVIC_EnableIRQ(TIM4_IRQn);
+        InitSensorTask();
+        //HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+        I2C_PowerOn();
+    }else{
+        HAL_NVIC_DisableIRQ(TIM4_IRQn);
+        vTaskSuspend(recvTaskHandle);
+        //HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_SET);
+        I2C_PowerOff();
+    }
+}
+
 void SensorTask(void *arg){
     HAL_NVIC_EnableIRQ(TIM4_IRQn);
     while(1){

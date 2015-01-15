@@ -16,6 +16,8 @@ float runPID(pid_context_t * p,float setpoint,float input);
 float runPID_warp(pid_context_t * p,float setpoint,float input,
     float warp_max,float warp_min);
 
+float passPID(pid_context_t * p,float setpoint,float input);
+
 void stablize_pid_init(pid_context_t *roll,
     pid_context_t *pitch,pid_context_t *yaw);
 

@@ -57,7 +57,12 @@ static void ShellTask(void *args){
                 //UART_send_IT((uint8_t []){0x00,0x01},2);
                 break;
             case 0x2:
-            case 0x3:break;
+                SensorEnable(false);
+                setControllerEnable(false);
+                break;
+            case 0x3:
+                SensorEnable(true);
+                break;
             case 0x4:
                 handlePID();
                 break;

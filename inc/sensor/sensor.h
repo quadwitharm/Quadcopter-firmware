@@ -24,6 +24,7 @@ extern struct Vector3D acceleration;
 
 bool InitSensorPeriph();
 bool InitSensorTask();
+void SensorEnable(bool enable);
 void SensorTask(void *);
 void sendSensorInfo();
 
