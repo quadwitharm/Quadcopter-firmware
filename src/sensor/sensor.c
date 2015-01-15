@@ -187,3 +187,108 @@ void TIM4_IRQHandler(void){
         }
     }
 }
+
+#define Kp 2.0f
+#define Ki 0.005f
+#define halfT 0.5f                // half the sample period
+
+float q0 = 1, q1 = 0, q2 = 0, q3 = 0;
+float exInt = 0, eyInt = 0, ezInt = 0;
+void Init_quaternion(struct Angle3D EulerAngle){
+    float halfP = EulerAngle.pitch/2.0f;
+    float halfR = EulerAngle.roll/2.0f;
+    float halfY = EulerAngle.yaw/2.0f;
+
+    float sinP = sinf(halfP);
+    float cosP = cosf(halfP);
+    float sinR = sinf(halfR);
+    float cosR = cosf(halfR);
+    float sinY = sinf(halfY);
+    float cosY = cosf(halfY);
+
+    q0 = cosY*cosR*cosP + sinY*sinR*sinP;
+    q1 = cosY*cosR*sinP + sinY*sinR*cosP;
+    q2 = cosY*sinR*cosP + sinY*cosR*sinP;
+    q3 = sinY*cosR*cosP + cosY*sinR*sinP;
+}
+
+void AHRSupdate(struct Angle3D groy, struct Angle3D accel, struct Angle3D compass)
+{
+    float norm;
+    float hx, hy, hz, bx, bz;
+    float vx, vy, vz, wx, wy, wz;
+    float ex, ey, ez;
+
+    float q0q0 = q0*q0;
+    float q0q1 = q0*q1;
+    float q0q2 = q0*q2;
+    float q0q3 = q0*q3;
+    float q1q1 = q1*q1;
+    float q1q2 = q1*q2;
+    float q1q3 = q1*q3;
+    float q2q2 = q2*q2;
+    float q2q3 = q2*q3;
+    float q3q3 = q3*q3;
+
+    norm = sqrt(groy.roll * groy.roll + groy.pitch * groy.pitch + 
+            groy.yaw * groy.yaw);
+    groy.roll /= norm;
+    groy.pitch /= norm;
+    groy.yaw /= norm;
+
+    norm = sqrt(compass.roll * compass.roll + compass.pitch * compass.pitch + 
+            compass.yaw * compass.yaw);
+    compass.roll /= norm;
+    compass.pitch /= norm;
+    compass.yaw /= norm;
+
+    hx = 2*compass.roll*(0.5 - q2q2 - q3q3) + 2*compass.pitch*(q1q2 - q0q3) +
+         2*compass.yaw*(q1q3 + q0q2);
+    hy = 2*compass.roll*(q1q2 - q0q3) + 2*compass.pitch*(0.5 - q1q1 - q3q3) +
+         2*compass.yaw*(q3q3 + q0q1);
+    hz = 2*compass.roll*(q1q3 - q0q2) + 2*compass.pitch*(q2q3 - q0q1) +
+         2*compass.yaw*(0.5 - q1q1 + q2q2);
+
+    bx = sqrt((hx*hx) + (hy*hy));
+    bz = hz;
+
+    vx = 2*(q1q3 - q0q2);
+    vy = 2*(q0q1 + q2q3);
+    vz = q0q0 - q1q1 -q2q2 + q3q3;
+
+    wx = 2*bx*(0.5 - q2q2 - q3q3) + 2*bz*(q1q3 - q0q2);
+    wy = 2*bx*(q1q2 - q0q3) + 2*bz*(q0q1 + q2q3);
+    wz = 2*bx*(q0q2 + q1q3) + 2*bz*(0.5 - q1q1 - q2q2);
+
+    ex = (accel.pitch*vz - accel.yaw*vy) + (compass.pitch*wz - compass.yaw*wy);
+    ey = (accel.yaw*vx - accel.roll*vz) + (compass.yaw*wx - compass.roll*wz);
+    ez = (accel.roll*vy - accel.pitch*vx) + (compass.roll*wy - compass.pitch*wx);
+
+    exInt = exInt + ex*Ki;
+    eyInt = eyInt + ey*Ki;
+    ezInt = ezInt + ez*Ki;
+
+    groy.roll = groy.roll + Kp*ex + exInt;
+    groy.pitch = groy.pitch + Kp*ey + eyInt;
+    groy.yaw = groy.yaw + Kp*ez + ezInt;
+
+    q0 += (-q1*groy.roll - q2*groy.pitch - q3*groy.yaw)*halfT;
+    q1 += (q0*groy.roll + q2*groy.yaw - q3*groy.pitch)*halfT;
+    q2 += (q0*groy.pitch - q1*groy.yaw + q3*groy.roll)*halfT;
+    q3 += (q0*groy.yaw + q1*groy.pitch - q2*groy.roll)*halfT;
+
+    norm = sqrt(q0*q0 + q1*q1 + q2*q2 + q3*q3);
+    q0 /= norm;
+    q1 /= norm;
+    q2 /= norm;
+    q3 /= norm;
+}
+
+struct Angle3D getAngle()
+{
+    return (struct Angle3D){
+        atan2(2*q2*q3 + 2*q0*q1, -2*q1*q1-2*q2*q2+1),
+        asin(-2*q1*q3 + 2*q0*q2),
+        atan2(2*q1*q2 + 2*q0*q3, -2*q2*q2-2*q3*q3+1),
+    };
+}
