@@ -35,6 +35,7 @@ static void ShellTask(void *args){
             UART_recv_IT(cur,1);
         }while(*cur++ != (uint8_t)0x86);
         int len = cur - buf - 1;
+
         int outlen = getB64DecodeLen(len);
         uint8_t cmdbuf[outlen];
         if(b64Decode(buf,cmdbuf,len)){
@@ -81,7 +82,7 @@ static void handlePID(uint8_t *buf){
     uint8_t which = buf[0];
     float pid[3];
 
-    memcpy(pid,buf,sizeof(pid));
+    memcpy(pid,buf+1,sizeof(pid));
 
     setPidParameter(which,KP,pid[0]);
     setPidParameter(which,KI,pid[1]);
@@ -94,12 +95,12 @@ static void handleChangeSetPoint(uint8_t *buf){
     float set[3];
 
     if(op == 0x0){
-        memcpy(set,buf,sizeof(float) * 3);
+        memcpy(set,buf+1,sizeof(float) * 3);
         setSetPoint(ROLL_C,set[0]);
         setSetPoint(PITCH_C,set[1]);
         setSetPoint(YAW_C,set[2]);
     }else if(op == 0x1){
-        memcpy(set,buf,sizeof(float));
+        memcpy(set,buf+1,sizeof(float));
         setSetPoint(THR_C,set[0]);
     }
     kprintf("%f %f %f",set[0],set[1],set[2]);
