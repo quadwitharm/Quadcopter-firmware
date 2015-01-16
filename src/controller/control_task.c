@@ -15,6 +15,8 @@ float mFR,mBL,mFL,mBR;
 float setPoint[NUM_RC_IN] = {};
 bool controllerEnable = true;
 
+static float yaw_target = 0.0f;
+
 static xTaskHandle controllerTaskHandle;
 
 bool Init_Controller(){
@@ -81,33 +83,33 @@ static void ControllerUpdate(){
     taskEXIT_CRITICAL();
 
     // Calculate PIDs
-    float roll_out = runPID(&pids[ROLL],
-        runPID(&pids[ROLL_RATE], setPoint[ROLL_C],
-        sensorData[ROLL_RATE]),sensorData[ROLL]);
-    float pitch_out = runPID(&pids[PITCH],
-        runPID(&pids[PITCH_RATE], setPoint[PITCH_C], 
-        sensorData[PITCH_RATE]),sensorData[PITCH]);
+    float roll_stab = runPID(&pids[ROLL], setPoint[ROLL_C], sensorData[ROLL]);
+    float roll_out = runPID(&pids[ROLL_RATE], roll_stab, sensorData[ROLL_RATE]);
 
-    float yaw_out;
+    float pitch_stab = runPID(&pids[PITCH], setPoint[PITCH_C], sensorData[PITCH]);
+    float pitch_out = runPID(&pids[PITCH_RATE], pitch_stab, sensorData[PITCH_RATE]);
+
+    float yaw_stab,yaw_out;
     if(setPoint[YAW_C] > 0.5f && setPoint[YAW_C] < -0.5f){
         //rate mode
         //setPoint = rate -> to rate pid
-        yaw_out = runPID_warp(&pids[YAW],
-            passPID(&pids[YAW_RATE], setPoint[YAW_C], 
-            sensorData[YAW_RATE]), sensorData[YAW],180.0f,-180.0f);
+
+        passPID(&pids[YAW],yaw_target,sensorData[YAW]);        
+        yaw_out = runPID(&pids[YAW_RATE], setPoint[YAW_C], sensorData[YAW_RATE]);
+        yaw_target = sensorData[YAW];
     }else{
         //stabilized mode
         //setPoint = angle = 0.0
-        yaw_out = runPID_warp(&pids[YAW],
-            runPID(&pids[YAW_RATE],0.0f, 
-            sensorData[YAW_RATE]), sensorData[YAW],180.0f,-180.0f);
+        
+        yaw_stab = runPID_warp(&pids[YAW], yaw_target, sensorData[YAW], 180.0f, -180.0f);
+        yaw_out = runPID(&pids[YAW_RATE], yaw_stab, sensorData[YAW_RATE]);
     }
 
     float throttle = setPoint[THR_C];/*should be radio input*/
 
     // Motor output
     //protect mortor by min throttle
-    if(throttle < 0.1){
+    if(throttle > 0.1){
         mFR = throttle + roll_out - pitch_out + yaw_out;
         mFL = throttle - roll_out - pitch_out - yaw_out;
         mBR = throttle + roll_out + pitch_out - yaw_out;
