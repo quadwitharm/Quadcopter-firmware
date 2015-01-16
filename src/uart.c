@@ -235,7 +235,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
     hdma_tx.Init.MemBurst            = DMA_MBURST_INC4;
     hdma_tx.Init.PeriphBurst         = DMA_PBURST_INC4;
     HAL_DMA_Init(&hdma_tx);
-    __HAL_LINKDMA(huart, hdmatx, hdma_rx);
+    __HAL_LINKDMA(huart, hdmatx, hdma_tx);
 
     hdma_rx.Instance                 = USARTx_RX_DMA_STREAM;
     hdma_rx.Init.Channel             = USARTx_RX_DMA_CHANNEL;
@@ -254,7 +254,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
     __HAL_LINKDMA(huart, hdmarx, hdma_rx);
 
 
-    HAL_NVIC_SetPriority(USARTx_DMA_TX_IRQn, 12, 0);
+    HAL_NVIC_SetPriority(USARTx_DMA_TX_IRQn, 11, 0);
     HAL_NVIC_EnableIRQ(USARTx_DMA_TX_IRQn);
 
     /* NVIC configuration for DMA transfer complete interrupt (USART1_RX) */

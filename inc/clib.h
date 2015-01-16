@@ -26,6 +26,7 @@ int kprintf(const char *format, ...);
 int strcmp ( const char * str1, const char * str2 );
 int atoi (const char * str);
 void * memcpy ( void * destination, const void * source, size_t num );
+size_t strlen ( const char * str );
 
 #ifdef __cplusplus
 }

@@ -25,9 +25,7 @@ int vsnprintf (char * s, size_t n, const char * format, va_list arg );
 
 void kputs(const char *str){
     const uint8_t head = 0x03;
-    int len = 0;
-    while(str[len]) len++;
-    SendCommand_2(head, (uint8_t *)str, len);
+    SendCommand_2(head, (uint8_t *)str, strlen(str));
 }
 void kputc(const char c){
     const uint8_t head = 0x03;

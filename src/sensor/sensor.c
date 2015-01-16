@@ -135,8 +135,6 @@ void Process(){
     // Conplementary filter
     xAttitude = ComplementaryFilter(&gyroEstimateAngle,&AccelEstimateAngle);
     // Make a unit vector of force
-
-    sendSensorInfo();
 }
 
 #define GYRO_DRDY 0x01
@@ -325,11 +323,11 @@ void sendSensorInfo(){
     SendCommand_3( head, 0x01, (uint8_t *)(float [])
         {acceleration.x, acceleration.y, acceleration.z},12);
 
-    SendCommand_3( head, 0x02, (uint8_t *)(float [])
-        {gyroAngle.roll, gyroAngle.pitch,gyroAngle.yaw},12);
-
-    SendCommand_3( head, 0x03, (uint8_t *)(float [])
-        {accelAngle.roll, accelAngle.pitch,accelAngle.yaw},12);
+//    SendCommand_3( head, 0x02, (uint8_t *)(float [])
+//        {gyroAngle.roll, gyroAngle.pitch,gyroAngle.yaw},12);
+//
+//    SendCommand_3( head, 0x03, (uint8_t *)(float [])
+//        {accelAngle.roll, accelAngle.pitch,accelAngle.yaw},12);
 
     SendCommand_3( head, 0x04, (uint8_t *)(float [])
         {xAttitude.roll, xAttitude.pitch,xAttitude.yaw},12);

@@ -5,7 +5,7 @@
 
 void SendCommand_3(uint8_t head,uint8_t head2,uint8_t content[],int len){
     taskENTER_CRITICAL();
-    uint8_t inbuf[len + 3];
+    uint8_t inbuf[len + 5];
     inbuf[0] = head;
     inbuf[1] = head2;
     memcpy(inbuf+2,content,len);
@@ -27,7 +27,7 @@ void SendCommand_3(uint8_t head,uint8_t head2,uint8_t content[],int len){
 
 void SendCommand_2(uint8_t head,uint8_t content[],int len){
     taskENTER_CRITICAL();
-    uint8_t inbuf[len + 1];
+    uint8_t inbuf[len + 4];
     inbuf[0] = head;
     memcpy(inbuf+1,content,len);
 
@@ -37,7 +37,7 @@ void SendCommand_2(uint8_t head,uint8_t content[],int len){
     }
     inbuf[len + 1] = checksum;
 
-    int outlen = getB64EncodeLen(len + 1);
+    int outlen = getB64EncodeLen(len + 2);
     uint8_t outbuf[outlen+1];
     b64Encode(inbuf,outbuf,len+2);
     outbuf[outlen] = 0xFF;

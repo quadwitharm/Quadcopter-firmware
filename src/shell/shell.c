@@ -28,11 +28,13 @@ bool InitShell(){
 
 static void ShellTask(void *args){
     uint8_t buf[64]; // A size enough for all command
+    kputs("Shell Enabled.");
     while(1){
         uint8_t *cur = buf;
         do{
             UART_recv_IT(cur,1);
         }while(*cur != (uint8_t)0xFF);
+        kprintf("Packet received: %s",cur);
         int len = cur - buf;
         int outlen = getB64DecodeLen(len);
         uint8_t cmdbuf[outlen];

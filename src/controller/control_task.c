@@ -56,6 +56,7 @@ static void Controller_Task(void *args){
         }
         UpdateMotorSpeed( (float []){ mFR, mFL, mBL, mBR } );
         sendControlInfo();
+        sendSensorInfo();
 
         // Timer interrupt will wake up this task
  //       kputs("Controller_Task Suspend\r\n");
