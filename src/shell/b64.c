@@ -57,7 +57,7 @@ bool b64Decode(uint8_t *in,uint8_t *out,int len){
     int index_in = 0;
     int index_out = 0;
 
-    int v = 0;
+    int8_t v = 0;
     int i=0, l=0;
 
     *inbuf = (uint8_t) 0;
@@ -65,21 +65,15 @@ bool b64Decode(uint8_t *in,uint8_t *out,int len){
 
     while(index_in < len){
         for( l = 0, i = 0; i < 4 && index_in < len; i++ ){
-            v = 0;
-            while(index_in < len && v == 0 ) {
-                v = in[index_in++];
-                v = ((v < 43 /* + */ || v > 122 /* z */) ? -1 : (int) cd64[ v - 43 ]);
-                if(v == -1){
-                    return false;
-                }
-            }
-            if( index_in < len ) {
+            v = in[index_in++];
+            v = ((v < 43 /* + */ || v > 122 /* z */) ? -1 :  cd64[ v - 43 ]);
+            if(v == -1){
+                return false;
+            }else if( v >= 0 ) {
                 l++;
-                if( v >= 0 ) {
-                    in[ i ] = (uint8_t) v;
-                }
-            }else{
-                in[i] = (uint8_t) 0;
+                inbuf[ i ] = (uint8_t) v;
+            }else if(v == -2){
+                inbuf[i] = (uint8_t) 0;
             }
         }
         if(l > 0){
@@ -89,6 +83,7 @@ bool b64Decode(uint8_t *in,uint8_t *out,int len){
             }    
         }
     }
+
     return true;
 }
 
