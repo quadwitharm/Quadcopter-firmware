@@ -22,7 +22,7 @@ void handleTextCommand(uint8_t *buf){
     int argc = parseCommand(line, argv);
     commandfunc_t toExec = findCommand(argv[0]);
     if(toExec == NULL){
-        puts("Command not found!\r\n");
+        kputs("Command not found!\r\n");
     }else{
         toExec(argc,argv);
     }
@@ -62,16 +62,16 @@ commandfunc_t findCommand(char *name){
 
 int help_command(int argc, char **argv){
     for(int i = 0;i < sizeof(CommandList) / sizeof(CommandList[0]);++i){
-        printf("[%s] : %s\r\n", CommandList[i].name, CommandList[i].description);
+        kprintf("[%s] : %s\r\n", CommandList[i].name, CommandList[i].description);
     }
     return 0;
 }
 
 int echo_command(int argc, char **argv){
     for(int i = 1;i < argc;++i){
-        printf("%s ",argv[i]);
+        kprintf("%s ",argv[i]);
     }
-    printf("\r\n");
+    kprintf("\r\n");
     return 0;
 }
 

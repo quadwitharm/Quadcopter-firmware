@@ -71,6 +71,8 @@ static void ShellTask(void *args){
             }else{
                 kprintf("Command checksum not match!\r\n");
             }
+        }else{
+            kprintf("Base64 Decode!\r\n");
         }
     }
 }

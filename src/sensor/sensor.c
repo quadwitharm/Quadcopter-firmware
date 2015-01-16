@@ -5,6 +5,7 @@
 #include "sensor/i2c.h"
 #include "sensor/filter.h"
 #include "uart.h"
+#include "shell/send.h"
 
 #include "task.h"
 #include "arm_math.h"
@@ -316,23 +317,20 @@ struct Angle3D getAngle()
 }
 
 void sendSensorInfo(){
-    uint8_t head = 0x01;
+    const uint8_t head = 0x01;
 
-    taskENTER_CRITICAL();
-    UART_send((uint8_t []){head,0x00},2);
-    UART_send((uint8_t *)(float []){lastAngularSpeed.roll,
-        lastAngularSpeed.pitch,lastAngularSpeed.yaw},12);
-    UART_send((uint8_t []){head,0x01},2);
-    UART_send((uint8_t *)(float []){acceleration.x,
-        acceleration.y,acceleration.z},12);
-    UART_send((uint8_t []){head,0x02},2);
-    UART_send((uint8_t *)(float []){gyroAngle.roll,
-        gyroAngle.pitch,gyroAngle.yaw},12);
-    UART_send((uint8_t []){head,0x03},2);
-    UART_send((uint8_t *)(float []){accelAngle.roll,
-        accelAngle.pitch,accelAngle.yaw},12);
-    UART_send((uint8_t []){head,0x04},2);
-    UART_send((uint8_t *)(float []){xAttitude.roll,
-        xAttitude.pitch,xAttitude.yaw},12);
-    taskEXIT_CRITICAL();
+    SendCommand_3( head, 0x00, (uint8_t *)(float [])
+        { lastAngularSpeed.roll, lastAngularSpeed.pitch, lastAngularSpeed.yaw }, 12);
+
+    SendCommand_3( head, 0x01, (uint8_t *)(float [])
+        {acceleration.x, acceleration.y, acceleration.z},12);
+
+    SendCommand_3( head, 0x02, (uint8_t *)(float [])
+        {gyroAngle.roll, gyroAngle.pitch,gyroAngle.yaw},12);
+
+    SendCommand_3( head, 0x03, (uint8_t *)(float [])
+        {accelAngle.roll, accelAngle.pitch,accelAngle.yaw},12);
+
+    SendCommand_3( head, 0x04, (uint8_t *)(float [])
+        {xAttitude.roll, xAttitude.pitch,xAttitude.yaw},12);
 }

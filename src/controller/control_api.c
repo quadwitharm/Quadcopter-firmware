@@ -2,6 +2,7 @@
 #include "controller/pid.h"
 #include "uart.h"
 #include "task.h"
+#include "shell/send.h"
 
 extern bool controllerEnable;
 extern float setPoint[NUM_RC_IN];
@@ -44,18 +45,12 @@ void setControllerEnable( bool set ){
 }
 
 void sendControlInfo(){
-    uint8_t head = 0x02;
+    const uint8_t head = 0x02;
 
-    taskENTER_CRITICAL();
-    UART_send((uint8_t []){head,0x00},2);
-    UART_send((uint8_t *)(float []){ mFR, mFL, mBL, mBR },16);
-    UART_send((uint8_t []){head,0x01},2);
-    UART_send((uint8_t *)(float []){pids[ROLL_RATE].out,
+    SendCommand_3(head,0x00, (uint8_t *)(float []){ mFR, mFL, mBL, mBR },16);
+    SendCommand_3(head,0x01, (uint8_t *)(float []){pids[ROLL_RATE].out,
         pids[PITCH_RATE].out,pids[YAW_RATE].out},12);
-    UART_send((uint8_t []){head,0x02},2);
-    UART_send((uint8_t *)(float []){pids[ROLL].out,
+    SendCommand_3(head,0x02, (uint8_t *)(float []){pids[ROLL].out,
         pids[PITCH].out,pids[YAW].out},12);
-    UART_send((uint8_t []){head,0x03},2);
-    UART_send((uint8_t *)&setPoint[THR_C],4);
-    taskEXIT_CRITICAL();
+    SendCommand_3(head,0x03, (uint8_t *)&setPoint[THR_C],4);
 }
