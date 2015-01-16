@@ -40,7 +40,7 @@ void TIM2_IRQHandler(void){
         if(__HAL_TIM_GET_ITSTATUS(&TIM2_Handle, TIM_IT_UPDATE) !=RESET) {
             __HAL_TIM_CLEAR_IT(&TIM2_Handle, TIM_IT_UPDATE);
             if(pdTRUE == xTaskResumeFromISR(controllerTaskHandle)){
-//               vPortYield();
+//              vPortYield();
                 taskYIELD();
             }
         }
@@ -88,8 +88,8 @@ static void ControllerUpdate(){
         sensorData[PITCH_RATE]),sensorData[PITCH]);
 
     float yaw_out;
-    if(setPoint[YAW_C] < 0.5f){
-        //rete mode
+    if(setPoint[YAW_C] > 0.5f && setPoint[YAW_C] < -0.5f){
+        //rate mode
         //setPoint = rate -> to rate pid
         yaw_out = runPID_warp(&pids[YAW],
             passPID(&pids[YAW_RATE], setPoint[YAW_C], 
@@ -102,19 +102,24 @@ static void ControllerUpdate(){
             sensorData[YAW_RATE]), sensorData[YAW],180.0f,-180.0f);
     }
 
-
     float throttle = setPoint[THR_C];/*should be radio input*/
 
     // Motor output
-    mFR = throttle + roll_out - pitch_out + yaw_out;
-    mFL = throttle - roll_out - pitch_out - yaw_out;
-    mBR = throttle + roll_out + pitch_out - yaw_out;
-    mBL = throttle - roll_out + pitch_out + yaw_out;
+    //protect mortor by min throttle
+    if(throttle < 0.1){
+        mFR = throttle + roll_out - pitch_out + yaw_out;
+        mFL = throttle - roll_out - pitch_out - yaw_out;
+        mBR = throttle + roll_out + pitch_out - yaw_out;
+        mBL = throttle - roll_out + pitch_out + yaw_out;
 
-    // scale output
-    SCALE(mFR,0,1);
-    SCALE(mFL,0,1);
-    SCALE(mBR,0,1);
-    SCALE(mBL,0,1);
+        // scale output
+        SCALE(mFR,0,1);
+        SCALE(mFL,0,1);
+        SCALE(mBR,0,1);
+        SCALE(mBL,0,1);
+    }else{
+        mFR = mFL = mBL = mBR = 0.0f;
+    }
+
 }
 

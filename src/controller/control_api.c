@@ -40,6 +40,17 @@ void setSetPoint( enum RC_IN a, float value){
     setPoint[a] = value;
 }
 
+/**
+*   basically same as setSetPoint
+*   sets 4 setpoint in once
+*/
+void control(float v[4]){
+    setPoint[0] = v[0];
+    setPoint[1] = v[1];
+    setPoint[2] = v[2];
+    setPoint[3] = v[3];
+}
+
 void setControllerEnable( bool set ){
     controllerEnable = set;
 }

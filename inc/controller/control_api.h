@@ -11,6 +11,7 @@ enum PID_K{ KP, KI, KD, MAX, MIN };
 void setPidParameter( enum Axis, enum PID_K, float );
 float getPidParameter( enum Axis, enum PID_K);
 void setSetPoint( enum RC_IN, float );
+void control(float v[4]);
 void setControllerEnable( bool );
 void sendControlInfo();
 
