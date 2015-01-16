@@ -21,6 +21,7 @@ int main(void){
         /* Something wrong, Freeze */
         while(1);
     }
+    UART_send((uint8_t *){(uint8_t)0xFF}, 1);
     kputs("USART test\r\n");
 
     if(!InitSensorPeriph() || !InitSensorTask()){

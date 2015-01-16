@@ -11,6 +11,10 @@ void I2C_PowerOff();
 bool I2C_Master_Transmit(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
 bool I2C_Master_Receive(uint16_t deviceAddr, uint8_t buf[], uint16_t size);
 
+void I2C_PowerOn();
+void I2C_PowerOff();
+void I2C_PowerInit();
+
 #define I2Cx                             I2C1
 #define I2Cx_CLK_ENABLE()                __I2C1_CLK_ENABLE()
 #define I2Cx_SDA_GPIO_CLK_ENABLE()       __GPIOB_CLK_ENABLE()

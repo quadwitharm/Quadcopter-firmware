@@ -24,39 +24,41 @@ void READ_HMC5883L(uint8_t addr,uint8_t buf[], uint8_t size){
 void HMC5883L_Init(){
     kputs("Setting Control Register for HMC5883L\r\n");
 
-    /* average 8 per measurement output, output data rate is 75Hz */
-    Write_HMC5883L(CRegA, 0b01111000);
+    /* average 8 per measurement output, output data rate is 15Hz */
+    Write_HMC5883L(CRegA, 0b01110000);
 
     /* +- 1.3 Ga, 1090 Gain */
     Write_HMC5883L(CRegB, 0b00100000);
 
-    /* single-measurement mode */
-    Write_HMC5883L(ModeReg, 0b00000001);
+    /* continue-measurement mode */
+    Write_HMC5883L(ModeReg, 0b00000000);
 
     kputs("Control Register for HMC5883L had been set\r\n");
 }
 
 void HMC5883L_Recv(){
-    uint8_t status;
-    READ_HMC5883L(StatusReg, &status, 1);
+    //uint8_t status;
+    //READ_HMC5883L(StatusReg, &status, 1);
 
-    if (status & 0x00000010){
-        return;
-    }
-     
-    uint8_t tmpbuff[6];
-    READ_HMC5883L(DataXMSB, tmpbuff, 6);
+    //if (status & 0x00000010){
+    //    return;
+    //}
+    //uint8_t tmpbuff[6];
+    //READ_HMC5883L(DataXMSB, tmpbuff, 6);
+    uint8_t tmpbuf[2];
+    READ_HMC5883L(DataXMSB, tmpbuf, 1);
+    HMC5883L.uint8.XH = tmpbuf[0];
+    READ_HMC5883L(DataXLSB, tmpbuf, 1);
+    HMC5883L.uint8.XL = tmpbuf[0];
 
-    HMC5883L.uint8.XH = tmpbuff[0];
-    HMC5883L.uint8.XL = tmpbuff[1];
+    READ_HMC5883L(DataZMSB, tmpbuf, 1);
+    HMC5883L.uint8.ZH = tmpbuf[0];
+    READ_HMC5883L(DataZLSB, tmpbuf, 1);
+    HMC5883L.uint8.ZL = tmpbuf[0];
 
-    HMC5883L.uint8.YH = tmpbuff[2];
-    HMC5883L.uint8.YL = tmpbuff[3];
+    READ_HMC5883L(DataYMSB, tmpbuf, 1);
+    HMC5883L.uint8.YH = tmpbuf[0];
+    READ_HMC5883L(DataYLSB, tmpbuf, 1);
+    HMC5883L.uint8.YL = tmpbuf[0];
 
-    HMC5883L.uint8.ZH = tmpbuff[4];
-    HMC5883L.uint8.ZL = tmpbuff[5];
-
-    /* single-measurement mode */
-    Write_HMC5883L(ModeReg, 0b00000001);
-    
 }

@@ -21,28 +21,29 @@ bool InitShell(){
             (portCHAR *)"Shell",
             512,
             NULL,
-            tskIDLE_PRIORITY + 1,
+            tskIDLE_PRIORITY + 5,
             &shellTaskHandle);
     return ret;
 }
 
 static void ShellTask(void *args){
     uint8_t buf[64]; // A size enough for all command
+    kputs("Shell Enabled.");
     while(1){
         uint8_t *cur = buf;
         do{
             UART_recv_IT(cur,1);
-        }while(*cur != (uint8_t)0xFF);
-        int len = cur - buf;
+        }while(*cur++ != (uint8_t)0x86);
+        int len = cur - buf - 1;
+
         int outlen = getB64DecodeLen(len);
         uint8_t cmdbuf[outlen];
-
-        if(b64Decode(buf,cmdbuf,len)){
+        if(b64Decode(buf,cmdbuf,len,&outlen)){
             uint8_t checksum = 0;
             for(int i = 0;i < outlen - 1;++i){
                 checksum += cmdbuf[i];
             }
-            if(checksum == cmdbuf[outlen - 1]){
+            if( checksum == cmdbuf[outlen - 1]){
                 switch(cmdbuf[0]){
                     case 0x0:
                         setControllerEnable(false);
@@ -72,7 +73,7 @@ static void ShellTask(void *args){
                 kprintf("Command checksum not match!\r\n");
             }
         }else{
-            kprintf("Base64 Decode!\r\n");
+            kprintf("Base64 Decode failed!\r\n");
         }
     }
 }
@@ -81,12 +82,12 @@ static void handlePID(uint8_t *buf){
     uint8_t which = buf[0];
     float pid[3];
 
-    memcpy(pid,buf,sizeof(pid));
+    memcpy(pid,buf+1,sizeof(pid));
 
-    setPidParameter(which,KP,buf[0]);
-    setPidParameter(which,KI,buf[1]);
-    setPidParameter(which,KD,buf[2]);
-    kprintf("%f %f %f",buf[0],buf[1],buf[2]);
+    setPidParameter(which,KP,pid[0]);
+    setPidParameter(which,KI,pid[1]);
+    setPidParameter(which,KD,pid[2]);
+    kprintf("%f %f %f",pid[0],pid[1],pid[2]);
 }
 
 static void handleChangeSetPoint(uint8_t *buf){
@@ -94,14 +95,14 @@ static void handleChangeSetPoint(uint8_t *buf){
     float set[3];
 
     if(op == 0x0){
-        memcpy(set,buf,sizeof(float) * 3);
+        memcpy(set,buf+1,sizeof(float) * 3);
         setSetPoint(ROLL_C,set[0]);
         setSetPoint(PITCH_C,set[1]);
         setSetPoint(YAW_C,set[2]);
     }else if(op == 0x1){
-        memcpy(set,buf,sizeof(float));
+        memcpy(set,buf+1,sizeof(float));
         setSetPoint(THR_C,set[0]);
     }
-    kprintf("%f %f %f",buf[0],buf[1],buf[2]);
+    kprintf("%f %f %f",set[0],set[1],set[2]);
 }
 
