@@ -21,7 +21,7 @@ bool InitShell(){
             (portCHAR *)"Shell",
             512,
             NULL,
-            tskIDLE_PRIORITY + 1,
+            tskIDLE_PRIORITY + 5,
             &shellTaskHandle);
     return ret;
 }
@@ -33,18 +33,16 @@ static void ShellTask(void *args){
         uint8_t *cur = buf;
         do{
             UART_recv_IT(cur,1);
-        }while(*cur != (uint8_t)0xFF);
-        kprintf("Packet received: %s",cur);
-        int len = cur - buf;
+        }while(*cur++ != (uint8_t)0x86);
+        int len = cur - buf - 1;
         int outlen = getB64DecodeLen(len);
         uint8_t cmdbuf[outlen];
-
         if(b64Decode(buf,cmdbuf,len)){
             uint8_t checksum = 0;
             for(int i = 0;i < outlen - 1;++i){
                 checksum += cmdbuf[i];
             }
-            if(checksum == cmdbuf[outlen - 1]){
+            if( checksum == cmdbuf[outlen - 1]){
                 switch(cmdbuf[0]){
                     case 0x0:
                         setControllerEnable(false);
@@ -74,7 +72,7 @@ static void ShellTask(void *args){
                 kprintf("Command checksum not match!\r\n");
             }
         }else{
-            kprintf("Base64 Decode!\r\n");
+            kprintf("Base64 Decode failed!\r\n");
         }
     }
 }
@@ -85,10 +83,10 @@ static void handlePID(uint8_t *buf){
 
     memcpy(pid,buf,sizeof(pid));
 
-    setPidParameter(which,KP,buf[0]);
-    setPidParameter(which,KI,buf[1]);
-    setPidParameter(which,KD,buf[2]);
-    kprintf("%f %f %f",buf[0],buf[1],buf[2]);
+    setPidParameter(which,KP,pid[0]);
+    setPidParameter(which,KI,pid[1]);
+    setPidParameter(which,KD,pid[2]);
+    kprintf("%f %f %f",pid[0],pid[1],pid[2]);
 }
 
 static void handleChangeSetPoint(uint8_t *buf){
@@ -104,6 +102,6 @@ static void handleChangeSetPoint(uint8_t *buf){
         memcpy(set,buf,sizeof(float));
         setSetPoint(THR_C,set[0]);
     }
-    kprintf("%f %f %f",buf[0],buf[1],buf[2]);
+    kprintf("%f %f %f",set[0],set[1],set[2]);
 }
 

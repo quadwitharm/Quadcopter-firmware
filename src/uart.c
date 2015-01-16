@@ -67,7 +67,7 @@ void UART_send_IT(uint8_t* data, uint16_t length){
         HAL_UART_Transmit_IT(&UartHandle, data++, 1);
     }
 #else
-    HAL_UART_Transmit_DMA(&UartHandle, data, length);
+    HAL_UART_Transmit_IT(&UartHandle, data, length);
 #endif
 
     while (!xSemaphoreTake(_tx_wait_sem, portMAX_DELAY));
@@ -75,7 +75,7 @@ void UART_send_IT(uint8_t* data, uint16_t length){
 
 uint8_t *tmpbuffer;
 void UART_recv_IT(uint8_t* buffer, uint16_t length){
-#if 0
+#if 1
     for(;length>0;length--){
         tmpbuffer = buffer;
         HAL_UART_Receive_IT(&UartHandle, buffer, 1);
@@ -83,7 +83,7 @@ void UART_recv_IT(uint8_t* buffer, uint16_t length){
         buffer++;
     }
 #else
-    HAL_UART_Receive_DMA(&UartHandle, buffer, length);
+    HAL_UART_Receive_IT(&UartHandle, buffer, length);
     while (!xSemaphoreTake(_rx_wait_sem, portMAX_DELAY));
 #endif
 }
@@ -130,7 +130,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle){
     static signed portBASE_TYPE xHigherPriorityTaskWoken;
     /* Set transmission flag: trasfer complete*/
 //    kprintf("UART error:%x ",UartHandle->ErrorCode);
-//    *tmpbuffer = UartHandle->Instance->DR;
+    *tmpbuffer = UartHandle->Instance->DR;
     xSemaphoreGiveFromISR(_rx_wait_sem, &xHigherPriorityTaskWoken);
     if (xHigherPriorityTaskWoken) {
         taskYIELD();
