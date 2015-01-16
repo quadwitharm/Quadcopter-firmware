@@ -37,7 +37,7 @@ static void ShellTask(void *args){
         int len = cur - buf - 1;
         int outlen = getB64DecodeLen(len);
         uint8_t cmdbuf[outlen];
-        if(b64Decode(buf,cmdbuf,len)){
+        if(b64Decode(buf,cmdbuf,len,&outlen)){
             uint8_t checksum = 0;
             for(int i = 0;i < outlen - 1;++i){
                 checksum += cmdbuf[i];
