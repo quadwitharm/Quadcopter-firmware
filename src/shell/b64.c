@@ -50,7 +50,7 @@ static void decodeblock( uint8_t *in, uint8_t *out ){
     out[ 2 ] = (uint8_t ) (((in[2] << 6) & 0xc0) | in[3]);
 }
 
-bool b64Decode(uint8_t *in,uint8_t *out,int len){
+bool b64Decode(uint8_t *in,uint8_t *out,int len,int *outl){
     uint8_t inbuf[4];
     uint8_t outbuf[3];
 
@@ -63,6 +63,7 @@ bool b64Decode(uint8_t *in,uint8_t *out,int len){
     *inbuf = (uint8_t) 0;
     *outbuf = (uint8_t) 0;
 
+    *outl = 0;
     while(index_in < len){
         for( l = 0, i = 0; i < 4 && index_in < len; i++ ){
             v = in[index_in++];
@@ -71,19 +72,19 @@ bool b64Decode(uint8_t *in,uint8_t *out,int len){
                 return false;
             }else if( v >= 0 ) {
                 l++;
-                inbuf[ i ] = (uint8_t) v;
+                inbuf[i] = (uint8_t) v;
             }else if(v == -2){
                 inbuf[i] = (uint8_t) 0;
             }
         }
         if(l > 0){
             decodeblock( inbuf, outbuf );
+            *outl += l -1 ;
             for( i = 0; i < l - 1; i++ ){
-                out[index_out++] = outbuf[i];
-            }    
+                out[index_out++] = outbuf[i];                
+            }
         }
     }
-
     return true;
 }
 
