@@ -24,8 +24,8 @@ void READ_HMC5883L(uint8_t addr,uint8_t buf[], uint8_t size){
 void HMC5883L_Init(){
     kputs("Setting Control Register for HMC5883L\r\n");
 
-    /* average 8 per measurement output, output data rate is 75Hz */
-    Write_HMC5883L(CRegA, 0b01111000);
+    /* average 8 per measurement output, output data rate is 15Hz */
+    Write_HMC5883L(CRegA, 0b01110000);
 
     /* +- 1.3 Ga, 1090 Gain */
     Write_HMC5883L(CRegB, 0b00100000);

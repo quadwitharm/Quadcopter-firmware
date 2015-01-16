@@ -39,6 +39,8 @@ bool InitSensorPeriph(){
     if(!I2C_Init()) return false;
     kputs("I2C: Initialized\r\n");
 
+    I2C_PowerInit();
+
     /* Initialize sensors on GY-801 */
     L3G4200D_Init();
     ADXL345_Init();
@@ -94,9 +96,9 @@ void Process(){
         ADXL345.int16.Z,
     };
     struct Angle3D angularSpeed = {
-        L3G4200D.int16.X,
-        L3G4200D.int16.Y,
-        L3G4200D.int16.Z,
+        L3G4200D.int16.X* 0.000266 * 0.3 + lastAngularSpeed.roll * 0.7,
+        L3G4200D.int16.Y* 0.000266 * 0.3 + lastAngularSpeed.pitch * 0.7,
+        L3G4200D.int16.Z* 0.000266 * 0.3 + lastAngularSpeed.yaw * 0.7,
     };
 
     struct Angle3D compass = {
@@ -105,27 +107,32 @@ void Process(){
         HMC5883L.int16.Z,
     };
 
+
     acceleration = accel;
     lastAngularSpeed = angularSpeed;
-
     //Init_quaternion(acceleration);
     //accel = getAngle();
     //acceleration.yaw = accel.pitch*180/3.141596;
     //acceleration.pitch *= 180.0;
     //lastAngularSpeed = accel;
-    AHRSupdate(angularSpeed, accel, compass);
+    //AHRSupdate(angularSpeed, accel, compass);
+    
     //IMUupdate(angularSpeed, accel);
-/*
-    struct Angle3D EularAngle = {
-        atan2(-accel.pitch, accel.yaw) * 57.296,
-        atan2(accel.roll, sqrt(accel.pitch*accel.pitch+accel.yaw*accel.yaw)) * 57.296,
-        0,
-    };
-*/
-    xAttitude = getAngle();
-    //xAttitude = EularAngle;
+#if 1
+    float roll = -atan2(accel.pitch, accel.yaw);
+    //float pitch = atan2(accel.roll, sqrt(accel.pitch*accel.pitch+accel.yaw*accel.yaw));
+    float pitch = asin(accel.roll/256.0);
+    float yaw = atan2(compass.roll, compass.pitch);
 
-    //kprintf("%f, %f, %f\r\n", xAttitude.roll, xAttitude.pitch, xAttitude.yaw);
+    struct Angle3D EularAngle = {
+        roll * 57.296,
+        pitch * 57.296,
+        yaw * 57.296,
+    };
+#endif
+    //xAttitude = getAngle();
+    xAttitude = EularAngle;
+
     sendSensorInfo();
 }
 
@@ -143,7 +150,6 @@ void SensorTask(void *arg){
         /* Process */
         Process();
 
-        //kputs("SensorTask\r\n");
         // Timer interrupt will wake up this task
         vTaskSuspend(recvTaskHandle);
     }
@@ -161,7 +167,7 @@ void Init_SensorDetective()
 
     TIM5_Handle.Instance = TIM5;
     TIM5_Handle.Init.Prescaler = 0;
-    TIM5_Handle.Init.Period = 450000;
+    TIM5_Handle.Init.Period = 1500000;
     TIM5_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     TIM5_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
 
@@ -223,26 +229,35 @@ void Init_Attitude(){
         ADXL345.int16.Z,
     };
 
+    struct Angle3D compass = {
+        HMC5883L.int16.X,
+        HMC5883L.int16.Y,
+        HMC5883L.int16.Z,
+    };
+
     struct Angle3D EularAngle = {
         atan2(-accel.pitch, accel.yaw),
         atan2(accel.roll, sqrt(accel.pitch*accel.pitch+accel.yaw*accel.yaw)),
-        0,
+        atan2(compass.roll, compass.pitch),
     };
 
     Init_quaternion(EularAngle);
 }
-/*
+
+#define Kp 2.0f
+#define Ki 0.005f
+#define halfT 0.5f
 void IMUupdate(struct Angle3D groy, struct Angle3D accel)
 {
     float norm;
     float vx, vy, vz;
     float ex, ey, ez;
 
-    norm = sqrt(groy.roll * groy.roll + groy.pitch * groy.pitch + 
-            groy.yaw * groy.yaw);
-    groy.roll /= norm;
-    groy.pitch /= norm;
-    groy.yaw /= norm;
+    norm = sqrt(accel.roll * accel.roll + accel.pitch * accel.pitch + 
+            accel.yaw * accel.yaw);
+    accel.roll /= norm;
+    accel.pitch /= norm;
+    accel.yaw /= norm;
 
     vx = 2*(q1*q3 - q0*q2);
     vy = 2*(q0*q1 + q2*q3);
@@ -252,9 +267,9 @@ void IMUupdate(struct Angle3D groy, struct Angle3D accel)
     ey = (accel.yaw*vx - accel.roll*vz);
     ez = (accel.roll*vy - accel.pitch*vx);
 
-    exInt = exInt + ex*Ki;
-    eyInt = eyInt + ey*Ki;
-    ezInt = ezInt + ez*Ki;
+    exInt += ex*Ki;
+    eyInt += ey*Ki;
+    ezInt += ez*Ki;
 
     groy.roll = groy.roll + Kp*ex + exInt;
     groy.pitch = groy.pitch + Kp*ey + eyInt;
@@ -271,7 +286,7 @@ void IMUupdate(struct Angle3D groy, struct Angle3D accel)
     q2 /= norm;
     q3 /= norm;
 }
-*/
+
 float twoKp = twoKpDef;
 float twoKi = twoKiDef;
 void AHRSupdate(struct Angle3D groy, struct Angle3D accel, struct Angle3D compass){

@@ -28,8 +28,8 @@ void ADXL345_Init(){
     /* Standby mode */
     Write_ADXL345(POWER_CTL  , 0b00000000);
 
-    /* Full resolution mode, +-16g */
-    Write_ADXL345(DATA_FORMAT, 0b00001011);
+    /* Full resolution mode, +-4g */
+    Write_ADXL345(DATA_FORMAT, 0b00001001);
 
     /* Bypass mode */
     Write_ADXL345(FIFO_CTL   , 0b00000000);
