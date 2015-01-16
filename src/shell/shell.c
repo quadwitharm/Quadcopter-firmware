@@ -1,16 +1,20 @@
 #include "shell/shell.h"
 #include "shell/textcommand.h"
+#include "shell/b64.h"
 #include "task.h"
 
 #include "sensor/sensor.h"
 #include "uart.h"
 #include "controller/control_api.h"
 
+#define BUFSIZE 128
+#define ARGV_SIZE 20
 static xTaskHandle shellTaskHandle;
 
 static void ShellTask(void *);
-static void handlePID();
-static void handleChangeSetPoint();
+
+static void handlePID(uint8_t *buf);
+static void handleChangeSetPoint(uint8_t *buf);
 
 bool InitShell(){
     portBASE_TYPE ret = xTaskCreate(ShellTask,
@@ -23,60 +27,79 @@ bool InitShell(){
 }
 
 static void ShellTask(void *args){
-    uint8_t type;
-    //puts("Welcome to quadcopter shell!\r\n");
+    uint8_t buf[64]; // A size enough for all command
     while(1){
-        //gets(line, BUFSIZE);
-        UART_recv_IT(&type,1);//get command type
+        uint8_t *cur = buf;
+        do{
+            UART_recv_IT(cur,1);
+        }while(*cur != (uint8_t)0xFF);
+        int len = cur - buf;
+        int outlen = getB64DecodeLen(len);
+        uint8_t cmdbuf[outlen];
 
-        switch(type){
-            case 0x0:
-                setControllerEnable(false);
-                break;
-            case 0x1:
-                setControllerEnable(true);
-                break;
-            case 0x2:
-            case 0x3:break;
-            case 0x4:
-                handlePID();
-                break;
-            case 0x5:
-                handleChangeSetPoint();
-                break;
-            case 0x6:
-                handleTextCommand();
-                break;
+        if(b64Decode(buf,cmdbuf,len)){
+            uint8_t checksum = 0;
+            for(int i = 0;i < outlen - 1;++i){
+                checksum += cmdbuf[i];
+            }
+            if(checksum == cmdbuf[outlen - 1]){
+                switch(cmdbuf[0]){
+                    case 0x0:
+                        setControllerEnable(false);
+                        break;
+                    case 0x1:
+                        setControllerEnable(true);
+                        break;
+                    case 0x2:
+                        SensorEnable(false);
+                        setControllerEnable(false);
+                        break;
+                    case 0x3:
+                        SensorEnable(true);
+                        break;
+                    case 0x4:
+                        handlePID(&cmdbuf[1]);
+                        break;
+                    case 0x5:
+                        handleChangeSetPoint(&cmdbuf[1]);
+                        break;
+                    case 0x6:
+                        handleTextCommand(&cmdbuf[1]);
+                        break;
+                }
+                kprintf("Handled command: %d\r\n",cmdbuf[0]);
+            }else{
+                kprintf("Command checksum not match!\r\n");
+            }
         }
     }
 }
 
-static void handlePID(){
-    uint8_t which;
-    float buf[3];
+static void handlePID(uint8_t *buf){
+    uint8_t which = buf[0];
+    float pid[3];
 
-    UART_recv_IT(&which,1);
-    UART_recv_IT((uint8_t *)buf,12);
+    memcpy(pid,buf,sizeof(pid));
+
     setPidParameter(which,KP,buf[0]);
     setPidParameter(which,KI,buf[1]);
     setPidParameter(which,KD,buf[2]);
+    kprintf("%f %f %f",buf[0],buf[1],buf[2]);
 }
 
-static void handleChangeSetPoint(){
-    uint8_t op;
-    float buf[3];
+static void handleChangeSetPoint(uint8_t *buf){
+    uint8_t op = buf[0];
+    float set[3];
 
-    UART_recv_IT(&op,1);
     if(op == 0x0){
-        UART_recv_IT((uint8_t *)buf,12);
-        setSetPoint(ROLL_C,buf[0]);
-        setSetPoint(PITCH_C,buf[1]);
-        setSetPoint(YAW_C,buf[2]);
+        memcpy(set,buf,sizeof(float) * 3);
+        setSetPoint(ROLL_C,set[0]);
+        setSetPoint(PITCH_C,set[1]);
+        setSetPoint(YAW_C,set[2]);
     }else if(op == 0x1){
-        UART_recv_IT((uint8_t *)buf,4);
-        setSetPoint(THR_C,buf[0]);
-    }else{
-
+        memcpy(set,buf,sizeof(float));
+        setSetPoint(THR_C,set[0]);
     }
+    kprintf("%f %f %f",buf[0],buf[1],buf[2]);
 }
 

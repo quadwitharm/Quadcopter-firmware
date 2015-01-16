@@ -17,7 +17,7 @@ int main(void){
     HAL_Init();
     SystemClock_Config();
 
-    if(UART_init(USART1,115200) != HAL_OK){
+    if(UART_init(USART1,9600) != HAL_OK){
         /* Something wrong, Freeze */
         while(1);
     }

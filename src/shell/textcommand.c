@@ -13,13 +13,11 @@ command_t CommandList[] = {
     MKCL(current_attitude, "Output filtered roll, pitch, yaw value"),
 
 };
-void handleTextCommand(){
-    uint16_t len;
-    char line[BUFSIZE];
+void handleTextCommand(uint8_t *buf){
+    uint16_t len = (((uint16_t)buf[1]) << 8) + buf[0];
     char *argv[ARGV_SIZE];
-
-    UART_recv_IT((uint8_t*)&len,2);
-    UART_recv_IT((uint8_t*)line,len);
+    char *line = (char *)buf + 2;
+    (void)len;
 
     int argc = parseCommand(line, argv);
     commandfunc_t toExec = findCommand(argv[0]);
@@ -84,7 +82,6 @@ int current_attitude_command(int argc, char **argv){
     for(int i = 0;i < max;++i){
         kprintf("%f,%f,%f,",xAttitude.roll,xAttitude.pitch,xAttitude.yaw);
         kprintf("%f,%f,%f,%f\r\n",mFR,mBL,mFL,mBR);
-        vTaskDelay(20);
     }
     return 0;
 }

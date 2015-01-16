@@ -25,7 +25,7 @@ extern "C" {
     extern struct ADXL345 ADXL345;
 
     void ADXL345_Init();
-    void ADXL345_Recv(void*);
+    void ADXL345_Recv();
     void ADXL345_Process(void*);
 
     /* Device Address */

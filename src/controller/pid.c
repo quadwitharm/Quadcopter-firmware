@@ -64,30 +64,44 @@ float runPID_warp(pid_context_t * p,float setpoint,float input,
     return _runPID(p,error,diff);
 }
 
+/**
+*   PID off mode
+*   take care of stored var to avoid bump
+*/
+float passPID(pid_context_t * p,float setpoint,float input){
+    p->prev_in = input;
+    p->integral = p->out = setpoint;
+
+    if(p->integral > p->max){p->integral = p->max;}
+    if(p->integral < p->min){p->integral = p->min;}
+
+    return setpoint;
+}
+
 void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,
     pid_context_t *yaw){
 
-    roll->kp = 0.0;
-    roll->ki = 0.0;
-    roll->kd = 0.0;
-    roll->prev_in = 0.0;
-    roll->integral = 0.0;
+    roll->kp = 0.0f;
+    roll->ki = 0.0f;
+    roll->kd = 0.0f;
+    roll->prev_in = 0.0f;
+    roll->integral = 0.0f;
     roll->max = MAX_ANGLE_RATE;
     roll->min = MIN_ANGLE_RATE;
 
-    pitch->kp = 0.0;
-    pitch->ki = 0.0;
-    pitch->kd = 0.0;
-    pitch->prev_in = 0.0;
-    pitch->integral = 0.0;
+    pitch->kp = 0.0f;
+    pitch->ki = 0.0f;
+    pitch->kd = 0.0f;
+    pitch->prev_in = 0.0f;
+    pitch->integral = 0.0f;
     pitch->max = MAX_ANGLE_RATE;
     pitch->min = MIN_ANGLE_RATE;
 
-    yaw->kp = 0.0;
-    yaw->ki = 0.0;
-    yaw->kd = 0.0;
-    yaw->prev_in = 0.0;
-    yaw->integral = 0.0;
+    yaw->kp = 0.0f;
+    yaw->ki = 0.0f;
+    yaw->kd = 0.0f;
+    yaw->prev_in = 0.0f;
+    yaw->integral = 0.0f;
     yaw->max = MAX_ANGLE_RATE;
     yaw->min = MIN_ANGLE_RATE;
 }
@@ -95,27 +109,27 @@ void stablize_pid_init(pid_context_t *roll,pid_context_t *pitch,
 void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,
     pid_context_t *yaw_r){
 
-    roll_r->kp = 0.0;
-    roll_r->ki = 0.0;
-    roll_r->kd = 0.0;
-    roll_r->prev_in = 0.0;
-    roll_r->integral = 0.0;
+    roll_r->kp = 0.0f;
+    roll_r->ki = 0.0f;
+    roll_r->kd = 0.0f;
+    roll_r->prev_in = 0.0f;
+    roll_r->integral = 0.0f;
     roll_r->max = MAX_MOUT;
     roll_r->min = MIN_MOUT;
 
-    pitch_r->kp = 0.0;
-    pitch_r->ki = 0.0;
-    pitch_r->kd = 0.0;
-    pitch_r->prev_in = 0.0;
-    pitch_r->integral = 0.0;
+    pitch_r->kp = 0.0f;
+    pitch_r->ki = 0.0f;
+    pitch_r->kd = 0.0f;
+    pitch_r->prev_in = 0.0f;
+    pitch_r->integral = 0.0f;
     pitch_r->max = MAX_MOUT;
     pitch_r->min = MIN_MOUT;
 
-    yaw_r->kp = 0.0;
-    yaw_r->ki = 0.0;
-    yaw_r->kd = 0.0;
-    yaw_r->prev_in = 0.0;
-    yaw_r->integral = 0.0;
+    yaw_r->kp = 0.0f;
+    yaw_r->ki = 0.0f;
+    yaw_r->kd = 0.0f;
+    yaw_r->prev_in = 0.0f;
+    yaw_r->integral = 0.0f;
     yaw_r->max = MAX_MOUT;
     yaw_r->min = MIN_MOUT;
 }

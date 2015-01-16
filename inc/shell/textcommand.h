@@ -20,7 +20,7 @@ commandfunc_t findCommand(char *name);
 int help_command(int argc, char **argv);
 int echo_command(int,char**);
 int current_attitude_command(int argc, char **argv);
-void handleTextCommand();
+void handleTextCommand(uint8_t *buf);
 
 
 #endif
