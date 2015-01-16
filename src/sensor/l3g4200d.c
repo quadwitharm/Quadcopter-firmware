@@ -30,8 +30,8 @@ void L3G4200D_Init(){
     /* DRDY INT2 */
     Write_L3G4200D(CTRL_REG3, 0b00011000);
 
-    /* Block data update, 250dps (0.00875 * value degree per second) */
-    Write_L3G4200D(CTRL_REG4, 0b10000000);
+    /* Block data update, 500dps (0.000266 * value degree per second) */
+    Write_L3G4200D(CTRL_REG4, 0b10010000);
 
 #if 0
     /* Enable FIFO & reboot memory content */

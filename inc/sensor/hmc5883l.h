@@ -22,6 +22,7 @@ extern "C" {
             }int16;
         };
     };
+    extern struct HMC5883L HMC5883L;
 
     void HMC5883L_Init();
     void HMC5883L_Recv();
