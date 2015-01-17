@@ -1,12 +1,47 @@
 #include "sensor/filter.h"
 #include "sensor/sensor.h"
 
+#define MAX(a,b) ( ((a) > (b)) ? (a) : (b) )
+#define MIN(a,b) ( ((a) > (b)) ? (b) : (a) )
+
 struct Angle3D ComplementaryFilter(struct Angle3D *gyro,struct Angle3D *fix){
-    return (struct Angle3D){
-        gyro -> roll  * 0.99 + fix -> roll  * 0.01,
-        gyro -> pitch * 0.99 + fix -> pitch * 0.01,
-        gyro -> yaw   * 0.99 + fix -> yaw   * 0.01,
-    };
+    struct Angle3D ret;
+    float a = gyro->roll, b = fix->roll;
+    if( MAX(a,b) - MIN(a,b) < MIN(a,b)+360 - MAX(a,b) ){
+        ret.roll = gyro -> roll * 0.99 + fix -> roll * 0.01;
+    }else{
+        if(gyro->roll > fix->roll)
+            ret.roll = gyro -> roll * 0.99 + (360 + fix -> roll) * 0.01;
+        else
+            ret.roll = (360 + gyro -> roll) * 0.99 + fix -> roll * 0.01;
+    }
+
+    a = gyro->pitch, b = fix->pitch;
+    if( MAX(a,b) - MIN(a,b) < MIN(a,b)+360 - MAX(a,b) ){
+        ret.pitch = gyro -> pitch * 0.99 + fix -> pitch * 0.01;
+    }else{
+        if(gyro->pitch > fix->pitch)
+            ret.pitch = gyro -> pitch * 0.99 + (360 + fix -> pitch) * 0.01;
+        else
+            ret.pitch = (360 + gyro -> pitch) * 0.99 + fix -> pitch * 0.01;
+    }
+
+    a = gyro->yaw, b = fix->yaw;
+    if( MAX(a,b) - MIN(a,b) < MIN(a,b)+360 - MAX(a,b) ){
+        ret.yaw = gyro -> yaw * 0.99 + fix -> yaw * 0.01;
+    }else{
+        if(gyro->yaw > fix->yaw)
+            ret.yaw = gyro -> yaw * 0.99 + (360 + fix -> yaw) * 0.01;
+        else
+            ret.yaw = (360 + gyro -> yaw) * 0.99 + fix -> yaw * 0.01;
+    }
+    if(ret.roll  > 180)ret.roll  -= 360;
+    if(ret.pitch > 180)ret.pitch -= 360;
+    if(ret.yaw   > 180)ret.yaw   -= 360;
+    if(ret.roll  < -180)ret.roll  += 360;
+    if(ret.pitch < -180)ret.pitch += 360;
+    if(ret.yaw   < -180)ret.yaw   += 360;
+    return ret;
 }
 
 float KalmanFilter(struct KalmanParameter *K, float angle, float dr, float dt){

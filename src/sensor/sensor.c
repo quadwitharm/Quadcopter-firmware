@@ -4,6 +4,7 @@
 #include "sensor/hmc5883l.h"
 #include "sensor/i2c.h"
 #include "sensor/filter.h"
+#include "sensor/MadgwickAHRS.h"
 
 #include "uart.h"
 #include "shell/send.h"
@@ -88,18 +89,19 @@ float getPitch(float x, float y, float z,float estimatePitch){
     return atan;
 }
 
+#define alpha 0.5
 void Process(){
 
     // Read from shared memory
     struct Angle3D accel = {
-        ADXL345.int16.X,
-        ADXL345.int16.Y,
-        ADXL345.int16.Z,
+        ADXL345.int16.X * alpha + (acceleration.roll * (1.0 - alpha)),
+        ADXL345.int16.Y * alpha + (acceleration.pitch * (1.0 - alpha)),
+        ADXL345.int16.Z * alpha + (acceleration.yaw * (1.0 - alpha)),
     };
     struct Angle3D angularSpeed = {
-        L3G4200D.int16.X* 0.000266 * 0.3 + lastAngularSpeed.roll * 0.7,
-        L3G4200D.int16.Y* 0.000266 * 0.3 + lastAngularSpeed.pitch * 0.7,
-        L3G4200D.int16.Z* 0.000266 * 0.3 + lastAngularSpeed.yaw * 0.7,
+        L3G4200D.int16.X,
+        L3G4200D.int16.Y,
+        L3G4200D.int16.Z,
     };
 
     struct Angle3D compass = {
@@ -117,10 +119,16 @@ void Process(){
     //AHRSupdate(angularSpeed, accel, compass);
 
     //IMUupdate(angularSpeed, accel);
-#if 1
+#if 0
+    MadgwickAHRSupdate(
+            angularSpeed.roll*0.01745, angularSpeed.pitch*0.01745, angularSpeed.yaw*0.01745,
+            accel.roll, accel.pitch, accel.yaw,
+            compass.roll, compass.pitch, compass.yaw);
+    xAttitude = getEulerAngle();
+#endif
+#if 0
     float roll = -atan2(accel.pitch, accel.yaw);
-    //float pitch = atan2(accel.roll, sqrt(accel.pitch*accel.pitch+accel.yaw*accel.yaw));
-    float pitch = asin(accel.roll/256.0);
+    float pitch =  atan2(accel.roll, sqrt(accel.pitch*accel.pitch+accel.yaw*accel.yaw));
     float yaw = atan2(compass.roll, compass.pitch);
 
     struct Angle3D EularAngle = {
@@ -128,9 +136,37 @@ void Process(){
         pitch * 57.296,
         yaw * 57.296,
     };
-#endif
-    //xAttitude = getAngle();
     xAttitude = EularAngle;
+#endif
+#if 1
+    // Convert to 360 degree
+    struct Angle3D gyroEstimateAngle = {
+        xAttitude.roll + angularSpeed.roll * 0.01 * 0.0175,
+        xAttitude.pitch + angularSpeed.pitch * 0.01 * 0.0175,
+        xAttitude.yaw + angularSpeed.yaw * 0.01 * 0.0175,
+    };
+    if(gyroEstimateAngle.roll > 180) gyroEstimateAngle.roll -= 360;
+    if(gyroEstimateAngle.roll <-180) gyroEstimateAngle.roll += 360;
+    if(gyroEstimateAngle.pitch > 180) gyroEstimateAngle.pitch -= 360;
+    if(gyroEstimateAngle.pitch <-180) gyroEstimateAngle.pitch += 360;
+    if(gyroEstimateAngle.yaw > 180) gyroEstimateAngle.yaw -= 360;
+    if(gyroEstimateAngle.yaw <-180) gyroEstimateAngle.yaw += 360;
+    struct Angle3D gyroAngle = gyroEstimateAngle;
+    // Make a unit vector of force
+    float F = sqrtf(accel.roll * accel.roll + accel.pitch * accel.pitch + accel.yaw * accel.yaw);
+    float F_inverse = 1 / F;
+    float x = accel.roll * F_inverse;
+    float y = accel.pitch * F_inverse;
+    float z = accel.yaw * F_inverse;
+    struct Angle3D AccelEstimateAngle = {
+        getRoll(x,y,z,gyroEstimateAngle.roll),
+        -getPitch(x,y,z,gyroEstimateAngle.pitch),
+        atan2(compass.roll, compass.pitch)*57.296,
+    };
+    struct Angle3D accelAngle = AccelEstimateAngle;
+    // Conplementary filter
+    xAttitude = ComplementaryFilter(&gyroEstimateAngle,&AccelEstimateAngle);
+#endif
 }
 
 #define GYRO_DRDY 0x01
@@ -153,7 +189,11 @@ void SensorEnable(bool enable){
 
 void SensorTask(void *arg){
     HAL_NVIC_EnableIRQ(TIM5_IRQn);
+
+    /* wait initial */
+    vTaskDelay(100);
     Init_Attitude();
+
     while(1){
         /* Read Sensor */
         L3G4200D_Recv();
@@ -180,7 +220,7 @@ void Init_SensorDetective()
 
     TIM5_Handle.Instance = TIM5;
     TIM5_Handle.Init.Prescaler = 0;
-    TIM5_Handle.Init.Period = 1500000;
+    TIM5_Handle.Init.Period = 900000;
     TIM5_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     TIM5_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
 
@@ -204,32 +244,6 @@ void TIM5_IRQHandler(void){
         }
     }
 }
-
-#define sampleFreq 200.0f
-#define twoKpDef (2.0f * 0.5f)
-#define twoKiDef (2.0f * 0.0f)
-
-float q0 = 1, q1 = 0, q2 = 0, q3 = 0;
-float exInt = 0, eyInt = 0, ezInt = 0;
-void Init_quaternion(struct Angle3D EulerAngle){
-
-    float halfP = EulerAngle.pitch/2.0f;
-    float halfR = EulerAngle.roll/2.0f;
-    float halfY = EulerAngle.yaw/2.0f;
-
-    float sinP = sinf(halfP);
-    float cosP = cosf(halfP);
-    float sinR = sinf(halfR);
-    float cosR = cosf(halfR);
-    float sinY = sinf(halfY);
-    float cosY = cosf(halfY);
-
-    q0 = cosY*cosR*cosP + sinY*sinR*sinP;
-    q1 = cosY*cosR*sinP + sinY*sinR*cosP;
-    q2 = cosY*sinR*cosP + sinY*cosR*sinP;
-    q3 = sinY*cosR*cosP + cosY*sinR*sinP;
-}
-
 
 void Init_Attitude(){
     ADXL345_Recv();
@@ -255,168 +269,6 @@ void Init_Attitude(){
     };
 
     Init_quaternion(EularAngle);
-}
-
-#define Kp 2.0f
-#define Ki 0.005f
-#define halfT 0.5f
-void IMUupdate(struct Angle3D groy, struct Angle3D accel)
-{
-    float norm;
-    float vx, vy, vz;
-    float ex, ey, ez;
-
-    norm = sqrt(accel.roll * accel.roll + accel.pitch * accel.pitch + 
-            accel.yaw * accel.yaw);
-    accel.roll /= norm;
-    accel.pitch /= norm;
-    accel.yaw /= norm;
-
-    vx = 2*(q1*q3 - q0*q2);
-    vy = 2*(q0*q1 + q2*q3);
-    vz = q0*q0 - q1*q1 -q2*q2 + q3*q3;
-
-    ex = (accel.pitch*vz - accel.yaw*vy);
-    ey = (accel.yaw*vx - accel.roll*vz);
-    ez = (accel.roll*vy - accel.pitch*vx);
-
-    exInt += ex*Ki;
-    eyInt += ey*Ki;
-    ezInt += ez*Ki;
-
-    groy.roll = groy.roll + Kp*ex + exInt;
-    groy.pitch = groy.pitch + Kp*ey + eyInt;
-    groy.yaw = groy.yaw + Kp*ez + ezInt;
-
-    q0 += (-q1*groy.roll - q2*groy.pitch - q3*groy.yaw)*halfT;
-    q1 += (q0*groy.roll + q2*groy.yaw - q3*groy.pitch)*halfT;
-    q2 += (q0*groy.pitch - q1*groy.yaw + q3*groy.roll)*halfT;
-    q3 += (q0*groy.yaw + q1*groy.pitch - q2*groy.roll)*halfT;
-
-    norm = sqrt(q0*q0 + q1*q1 + q2*q2 + q3*q3);
-    q0 /= norm;
-    q1 /= norm;
-    q2 /= norm;
-    q3 /= norm;
-}
-
-float twoKp = twoKpDef;
-float twoKi = twoKiDef;
-void AHRSupdate(struct Angle3D groy, struct Angle3D accel, struct Angle3D compass){
-    float norm;
-    float hx, hy, hz, bx, bz;
-    float halfvx, halfvy, halfvz, halfwx, halfwy, halfwz;
-    float halfex, halfey, halfez, qa, qb, qc;
-
-    // Auxiliary variables to avoid repeated arithmetic
-    float q0q0 = q0*q0;
-    float q0q1 = q0*q1;
-    float q0q2 = q0*q2;
-    float q0q3 = q0*q3;
-    float q1q1 = q1*q1;
-    float q1q2 = q1*q2;
-    float q1q3 = q1*q3;
-    float q2q2 = q2*q2;
-    float q2q3 = q2*q3;
-    float q3q3 = q3*q3;
-
-    // Normalise magnetometer measurement
-    norm = invSqrt(accel.roll * accel.roll + accel.pitch * accel.pitch + 
-            accel.yaw * accel.yaw);
-    accel.roll *= norm;
-    accel.pitch *= norm;
-    accel.yaw *= norm;
-
-    //Normalise accelerometer measurement
-    norm = sqrt(compass.roll * compass.roll + compass.pitch * compass.pitch + 
-            compass.yaw * compass.yaw);
-    compass.roll *= norm;
-    compass.pitch *= norm;
-    compass.yaw *= norm;
-
-    hx = 2.0f * (compass.roll*(0.5 - q2q2 - q3q3) + compass.pitch*(q1q2 - q0q3) +
-         compass.yaw*(q1q3 + q0q2));
-    hy = 2.0f * (compass.roll*(q1q2 + q0q3) + compass.pitch*(0.5 - q1q1 - q3q3) +
-         compass.yaw*(q2q3 - q0q1));
-    hz = 2.0f * (compass.roll*(q1q3 - q0q2) + compass.pitch*(q2q3 + q0q1) +
-         compass.yaw*(0.5 - q1q1 - q2q2));
-
-    bx = sqrt((hx*hx) + (hy*hy));
-    bz = hz;
-
-    halfvx = (q1q3 - q0q2);
-    halfvy = (q0q1 + q2q3);
-    halfvz = q0q0 - 0.5f + q3q3;
-
-    halfwx = bx*(0.5 - q2q2 - q3q3) + bz*(q1q3 - q0q2);
-    halfwy = bx*(q1q2 - q0q3) + bz*(q0q1 + q2q3);
-    halfwz = bx*(q0q2 + q1q3) + bz*(0.5 - q1q1 - q2q2);
-
-    halfex = (accel.pitch*halfvz - accel.yaw*halfvy) + 
-        (compass.pitch*halfwz - compass.yaw*halfwy);
-    halfey = (accel.yaw*halfvx - accel.roll*halfvz) + 
-        (compass.yaw*halfwx - compass.roll*halfwz);
-    halfez = (accel.roll*halfvy - accel.pitch*halfvx) + 
-        (compass.roll*halfwy - compass.pitch*halfwx);
-
-    if(twoKi > 0.0f) {
-        exInt += halfex*twoKi * (1.0f/sampleFreq);
-        eyInt += halfey*twoKi * (1.0f/sampleFreq);
-        ezInt += halfez*twoKi * (1.0f/sampleFreq);
-
-        groy.roll += exInt;
-        groy.pitch += eyInt;
-        groy.yaw += ezInt;
-    }
-    else{
-        exInt = 0;
-        eyInt = 0;
-        ezInt = 0;
-    }
-
-    groy.roll += twoKp * halfex;
-    groy.pitch += twoKp * halfey;
-    groy.yaw += twoKp * halfez;
-
-    groy.roll *= (0.5f * (1.0f / sampleFreq));
-    groy.pitch *= (0.5f * (1.0f / sampleFreq));
-    groy.yaw *= (0.5f * (1.0f / sampleFreq));
-
-    qa = q0;
-    qb = q1;
-    qc = q2;
-
-    q0 += (-qb*groy.roll - qc*groy.pitch - q3*groy.yaw);
-    q1 += (qa*groy.roll + qc*groy.yaw - q3*groy.pitch);
-    q2 += (qa*groy.pitch - qb*groy.yaw + q3*groy.roll);
-    q3 += (qa*groy.yaw + qb*groy.pitch - qc*groy.roll);
-
-    norm = invSqrt(q0*q0 + q1*q1 + q2*q2 + q3*q3);
-    q0 *= norm;
-    q1 *= norm;
-    q2 *= norm;
-    q3 *= norm;
-}
-
-float invSqrt(float x){
-
-    float halfx = 0.5f * x;
-    float y = x;
-
-    long i = *(long*)&y;
-    i = 0x5f3759df - (i>>1);
-    y = *(float*)&i;
-    y = y * (1.5f - (halfx * y * y));
-
-    return y;
-}
-
-struct Angle3D getAngle(){
-    return (struct Angle3D){
-        atan2(2*q2*q3 + 2*q0*q1, -2*q1*q1-2*q2*q2+1)*57.296,
-        asin(-2*q1*q3 + 2*q0*q2)*57.296,
-        atan2(2*q1*q2 + 2*q0*q3, -2*q2*q2-2*q3*q3+1)*57.296,
-    };
 }
 
 void sendSensorInfo(){

@@ -50,6 +50,7 @@ void TIM2_IRQHandler(void){
 }
 static void Controller_Task(void *args){
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
+    int outputClock = 0;
     while(1){
         if( controllerEnable ){
             ControllerUpdate();
@@ -57,8 +58,12 @@ static void Controller_Task(void *args){
              mFR = mFL = mBL = mBR = 0.0f;
         }
         UpdateMotorSpeed( (float []){ mFR, mFL, mBL, mBR } );
-        sendControlInfo();
-        sendSensorInfo();
+        if(outputClock++ == 6){
+//            sendControlInfo();
+//            sendSensorInfo();
+            outputClock = 0;
+            HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
+        }
 
         // Timer interrupt will wake up this task
  //       kputs("Controller_Task Suspend\r\n");
@@ -94,13 +99,13 @@ static void ControllerUpdate(){
         //rate mode
         //setPoint = rate -> to rate pid
 
-        passPID(&pids[YAW],yaw_target,sensorData[YAW]);        
+        passPID(&pids[YAW],yaw_target,sensorData[YAW]);
         yaw_out = runPID(&pids[YAW_RATE], setPoint[YAW_C], sensorData[YAW_RATE]);
         yaw_target = sensorData[YAW];
     }else{
         //stabilized mode
         //setPoint = angle = 0.0
-        
+
         yaw_stab = runPID_warp(&pids[YAW], yaw_target, sensorData[YAW], 180.0f, -180.0f);
         yaw_out = runPID(&pids[YAW_RATE], yaw_stab, sensorData[YAW_RATE]);
     }
@@ -109,13 +114,13 @@ static void ControllerUpdate(){
 
     // Motor output
     //protect mortor by min throttle
-    if(throttle > 0.1){
-        mFR = throttle + roll_out - pitch_out + yaw_out;
-        mFL = throttle - roll_out - pitch_out - yaw_out;
-        mBR = throttle + roll_out + pitch_out - yaw_out;
-        mBL = throttle - roll_out + pitch_out + yaw_out;
+    if(throttle > 0.05){
+        mFR = throttle - roll_out - pitch_out + yaw_out;
+        mFL = throttle + roll_out - pitch_out - yaw_out;
+        mBR = throttle - roll_out + pitch_out - yaw_out;
+        mBL = throttle + roll_out + pitch_out + yaw_out;
 
-        // scale output
+       // scale output
         SCALE(mFR,0,1);
         SCALE(mFL,0,1);
         SCALE(mBR,0,1);
