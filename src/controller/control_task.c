@@ -88,10 +88,10 @@ static void ControllerUpdate(){
     taskEXIT_CRITICAL();
 
     // Calculate PIDs
-    float roll_stab = runPID(&pids[ROLL], setPoint[ROLL_C], sensorData[ROLL]);
+    float roll_stab = /*runPID(&pids[ROLL],*/ setPoint[ROLL_C]/*, sensorData[ROLL])*/;
     float roll_out = runPID(&pids[ROLL_RATE], roll_stab, sensorData[ROLL_RATE]);
 
-    float pitch_stab = runPID(&pids[PITCH], setPoint[PITCH_C], sensorData[PITCH]);
+    float pitch_stab = /*runPID(&pids[PITCH],*/ setPoint[PITCH_C]/*, sensorData[PITCH])*/;
     float pitch_out = runPID(&pids[PITCH_RATE], pitch_stab, sensorData[PITCH_RATE]);
 
     float yaw_stab,yaw_out;
@@ -105,8 +105,8 @@ static void ControllerUpdate(){
     }else{
         //stabilized mode
         //setPoint = angle = 0.0
-
-        yaw_stab = runPID_warp(&pids[YAW], yaw_target, sensorData[YAW], 180.0f, -180.0f);
+        
+        yaw_stab = /*runPID_warp(&pids[YAW], yaw_target, sensorData[YAW], 180.0f, -180.0f)*/ setPoint[YAW_C];
         yaw_out = runPID(&pids[YAW_RATE], yaw_stab, sensorData[YAW_RATE]);
     }
 
