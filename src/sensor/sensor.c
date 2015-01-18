@@ -99,9 +99,9 @@ void Process(){
         ADXL345.int16.Z * alpha + (acceleration.yaw * (1.0 - alpha)),
     };
     struct Angle3D angularSpeed = {
-        L3G4200D.int16.X,
-        L3G4200D.int16.Y,
-        L3G4200D.int16.Z,
+        L3G4200D.int16.X *0.0175,
+        L3G4200D.int16.Y *0.0175,
+        L3G4200D.int16.Z *0.0175,
     };
 
     struct Angle3D compass = {
@@ -141,9 +141,9 @@ void Process(){
 #if 1
     // Convert to 360 degree
     struct Angle3D gyroEstimateAngle = {
-        xAttitude.roll + angularSpeed.roll * 0.01 * 0.0175,
-        xAttitude.pitch + angularSpeed.pitch * 0.01 * 0.0175,
-        xAttitude.yaw + angularSpeed.yaw * 0.01 * 0.0175,
+        xAttitude.roll + angularSpeed.roll * 0.01 ,
+        xAttitude.pitch + angularSpeed.pitch * 0.01,
+        xAttitude.yaw + angularSpeed.yaw * 0.01,
     };
     if(gyroEstimateAngle.roll > 180) gyroEstimateAngle.roll -= 360;
     if(gyroEstimateAngle.roll <-180) gyroEstimateAngle.roll += 360;

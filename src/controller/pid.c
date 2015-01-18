@@ -4,8 +4,8 @@
 #define FREQUENCY 60.0f
 #define DT (1.0f/FREQUENCY)
 //angle range for stabilization pid
-#define MAX_ANGLE_RATE 60.0f
-#define MIN_ANGLE_RATE -60.0f
+#define MAX_ANGLE_RATE 0.25f
+#define MIN_ANGLE_RATE -0.25f
 //output range for angle rate pid to mortor
 #define MAX_MOUT 0.3f
 #define MIN_MOUT 0.0f
@@ -59,7 +59,6 @@ float runPID_warp(pid_context_t * p,float setpoint,float input,
     }else if(diff < warp_min){
         diff += range;
     }
-
     p->prev_in = input;
     return _runPID(p,error,diff);
 }

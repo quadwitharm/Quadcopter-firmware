@@ -59,10 +59,9 @@ static void Controller_Task(void *args){
         }
         UpdateMotorSpeed( (float []){ mFR, mFL, mBL, mBR } );
         if(outputClock++ == 6){
-//            sendControlInfo();
-//            sendSensorInfo();
+            sendControlInfo();
+            sendSensorInfo();
             outputClock = 0;
-            HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
         }
 
         // Timer interrupt will wake up this task
@@ -87,14 +86,20 @@ static void ControllerUpdate(){
     sensorData[YAW_RATE] = lastAngularSpeed.yaw;
     taskEXIT_CRITICAL();
 
+#ifdef USE_RATE_PID
     // Calculate PIDs
-    float roll_stab = /*runPID(&pids[ROLL],*/ setPoint[ROLL_C]/*, sensorData[ROLL])*/;
-    float roll_out = runPID(&pids[ROLL_RATE], roll_stab, sensorData[ROLL_RATE]);
+    //float roll_stab = runPID(&pids[ROLL], setPoint[ROLL_C], sensorData[ROLL]);
+    //float roll_out = runPID(&pids[ROLL_RATE], roll_stab, sensorData[ROLL_RATE]);
 
-    float pitch_stab = /*runPID(&pids[PITCH],*/ setPoint[PITCH_C]/*, sensorData[PITCH])*/;
-    float pitch_out = runPID(&pids[PITCH_RATE], pitch_stab, sensorData[PITCH_RATE]);
+    //float pitch_stab = runPID(&pids[PITCH], setPoint[PITCH_C]/*, sensorData[PITCH]);
+    //float pitch_out = runPID(&pids[PITCH_RATE], pitch_stab, sensorData[PITCH_RATE]);
+#else
+    float roll_out = runPID(&pids[ROLL], setPoint[ROLL_C], sensorData[ROLL]);
+    float pitch_out = runPID(&pids[PITCH], setPoint[PITCH_C], sensorData[PITCH]);
+#endif
 
     float yaw_stab,yaw_out;
+#ifdef USE_RATE_PID
     if(setPoint[YAW_C] > 0.5f && setPoint[YAW_C] < -0.5f){
         //rate mode
         //setPoint = rate -> to rate pid
@@ -105,10 +110,13 @@ static void ControllerUpdate(){
     }else{
         //stabilized mode
         //setPoint = angle = 0.0
-        
-        yaw_stab = /*runPID_warp(&pids[YAW], yaw_target, sensorData[YAW], 180.0f, -180.0f)*/ setPoint[YAW_C];
+
+        yaw_stab = runPID_warp(&pids[YAW], yaw_target, sensorData[YAW], 180.0f, -180.0f) setPoint[YAW_C];
         yaw_out = runPID(&pids[YAW_RATE], yaw_stab, sensorData[YAW_RATE]);
     }
+#else
+    yaw_out = runPID_warp(&pids[YAW], setPoint[YAW_C], sensorData[YAW],180.0f,-180.0f);
+#endif
 
     float throttle = setPoint[THR_C];/*should be radio input*/
 
