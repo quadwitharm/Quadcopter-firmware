@@ -41,65 +41,36 @@ HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate){
     return HAL_UART_Init(&UartHandle);
 }
 
+
 HAL_StatusTypeDef UART_send(uint8_t* data, uint16_t length){//blocking call
     HAL_StatusTypeDef status;
-#if 1
     for(;length>0;length--){
         status= HAL_UART_Transmit(&UartHandle, data++, 1, 10000);
     }
-#else
-    status= HAL_UART_Transmit(&UartHandle, data, length, 10000);
-#endif
     return status;
 }
 
 HAL_StatusTypeDef UART_recv(uint8_t* buffer, uint16_t length){
-    HAL_StatusTypeDef status;
-    for(;length>0;length--){
-        status = HAL_UART_Receive(&UartHandle, (uint8_t *)buffer, 1, 10000);
-        buffer++;
-    }
-    //HAL_StatusTypeDef status = HAL_UART_Receive(&UartHandle, (uint8_t *)buffer, length, 10000);
-    return status;
+    return HAL_UART_Receive(&UartHandle, (uint8_t *)buffer, length, 10000);
 }
 
 void UART_send_IT(uint8_t* data, uint16_t length){
-#if 0
-    for(;length>0;length--){
-        HAL_UART_Transmit_IT(&UartHandle, data++, 1);
-    }
-#else
     HAL_UART_Transmit_IT(&UartHandle, data, length);
-#endif
-
     while (!xSemaphoreTake(_tx_wait_sem, portMAX_DELAY));
 }
 
+void UART_recv_IT(uint8_t* buffer, uint16_t length){
+    for(;length>0;buffer++,length--){
+        xQueueReceive(rxQueue, buffer, portMAX_DELAY);
+    }
+}
+
+// RX Interrupt can only start after FreeRTOS schedular starts, because the IRQ
+// Handler uses FreeRTOS Queue API
 void StartUartRXInterrupt(){
     __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_RXNE);
     __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_PE);
     __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_ERR);
-}
-
-void UART_recv_IT(uint8_t* buffer, uint16_t length){
-#if 1
-    for(;length>0;buffer++,length--){
-        xQueueReceive(rxQueue, buffer, portMAX_DELAY);
-    }
-#else
-    HAL_UART_Receive_IT(&UartHandle, buffer, length);
-    while (!xSemaphoreTake(_rx_wait_sem, portMAX_DELAY));
-#endif
-}
-
-void send_byte(char ch){
-    UART_send_IT((uint8_t *)&ch,1);
-}
-
-char recv_byte(){
-    char msg;
-    UART_recv_IT((uint8_t *)&msg,1);
-    return msg;
 }
 
 /**
@@ -251,13 +222,14 @@ void USARTx_DMA_TX_IRQHandler(void)
   HAL_DMA_IRQHandler(UartHandle.hdmatx);
 }
 
+// Uses HAL Library
 HAL_StatusTypeDef UART_Transmit_IT(UART_HandleTypeDef *huart);
 
 static HAL_StatusTypeDef UART_Receive_IT(UART_HandleTypeDef *huart) {
-    uint32_t tmp1 = 0;
     BaseType_t isHigherPriorityTaskWoken = 0;
-
-    tmp1 = huart->State;
+    // To reduce interrupt latency, disable wordlength and parity configuration
+    // check by default
+#ifdef CONFIG_WORDLENGTH_AND_PARITY
     if(huart->Init.WordLength == UART_WORDLENGTH_9B) {
         if(huart->Init.Parity == UART_PARITY_NONE) {
             // Only properly work when queue item size is 2 byte or more
@@ -269,13 +241,16 @@ static HAL_StatusTypeDef UART_Receive_IT(UART_HandleTypeDef *huart) {
         }
     } else {
         if(huart->Init.Parity == UART_PARITY_NONE) {
+#endif
             uint8_t r = (uint8_t)(huart->Instance->DR & (uint8_t)0xFF);
             xQueueSendToBackFromISR(rxQueue, &r, &isHigherPriorityTaskWoken);
+#ifdef CONFIG_WORDLENGTH_AND_PARITY
         } else {
             uint8_t r = (uint8_t)(huart->Instance->DR & (uint8_t)0x7F);
             xQueueSendToBackFromISR(rxQueue, &r, &isHigherPriorityTaskWoken);
         }
     }
+#endif
     if(isHigherPriorityTaskWoken) taskYIELD();
     return HAL_OK;
 }

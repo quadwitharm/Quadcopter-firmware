@@ -34,7 +34,6 @@ static void ShellTask(void *args){
         uint8_t *cur = buf;
         do{
             UART_recv_IT(cur,1);
-            kprintf("%x ",*cur);
         }while(*cur++ != (uint8_t)0x86);
         int len = cur - buf - 1;
 

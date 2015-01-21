@@ -8,8 +8,6 @@
 #include "stm32f429i_discovery.h"
 #include "stm32f4xx_hal.h"
 
-void send_byte(char ch);
-char recv_byte();
 HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate);
 HAL_StatusTypeDef UART_send(uint8_t* data, uint16_t length);
 HAL_StatusTypeDef UART_recv(uint8_t* buffer, uint16_t length);
