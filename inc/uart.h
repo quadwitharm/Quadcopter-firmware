@@ -16,6 +16,7 @@ HAL_StatusTypeDef UART_recv(uint8_t* buffer, uint16_t length);
 void UART_send_IT(uint8_t* data, uint16_t length);
 void UART_recv_IT(uint8_t* buffer, uint16_t length);
 void USARTx_IRQHandler(void);
+void StartUartRXInterrupt();
 
 #ifdef __cplusplus
 }

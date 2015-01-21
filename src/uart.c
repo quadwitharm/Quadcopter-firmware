@@ -21,6 +21,7 @@ static DMA_HandleTypeDef hdma_tx;
 static DMA_HandleTypeDef hdma_rx;
 volatile xSemaphoreHandle _tx_wait_sem = NULL;
 volatile xSemaphoreHandle _rx_wait_sem = NULL;
+xQueueHandle rxQueue;
 
 HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate){
     UartHandle = (UART_HandleTypeDef) {
@@ -36,6 +37,7 @@ HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate){
     };
     _rx_wait_sem = xSemaphoreCreateBinary();
     _tx_wait_sem = xSemaphoreCreateBinary();
+    rxQueue = xQueueCreate(64, 1);
     return HAL_UART_Init(&UartHandle);
 }
 
@@ -73,14 +75,16 @@ void UART_send_IT(uint8_t* data, uint16_t length){
     while (!xSemaphoreTake(_tx_wait_sem, portMAX_DELAY));
 }
 
-uint8_t *tmpbuffer;
+void StartUartRXInterrupt(){
+    __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_RXNE);
+    __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_PE);
+    __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_ERR);
+}
+
 void UART_recv_IT(uint8_t* buffer, uint16_t length){
 #if 1
-    for(;length>0;length--){
-        tmpbuffer = buffer;
-        HAL_UART_Receive_IT(&UartHandle, buffer, 1);
-        while (!xSemaphoreTake(_rx_wait_sem, portMAX_DELAY));
-        buffer++;
+    for(;length>0;buffer++,length--){
+        xQueueReceive(rxQueue, buffer, portMAX_DELAY);
     }
 #else
     HAL_UART_Receive_IT(&UartHandle, buffer, length);
@@ -107,31 +111,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle){
     static signed portBASE_TYPE xHigherPriorityTaskWoken;
     /* Set transmission flag: trasfer complete*/
     xSemaphoreGiveFromISR(_tx_wait_sem, &xHigherPriorityTaskWoken);
-    if (xHigherPriorityTaskWoken) {
-        taskYIELD();
-    }
-}
-
-/**
- * @brief  Rx Transfer completed callback
- * @param  UartHandle: UART handle
- * @retval None
- */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
-    static signed portBASE_TYPE xHigherPriorityTaskWoken;
-    /* Set transmission flag: trasfer complete*/
-    xSemaphoreGiveFromISR(_rx_wait_sem, &xHigherPriorityTaskWoken);
-    if (xHigherPriorityTaskWoken) {
-        vPortYield();
-//        taskYIELD();
-    }
-}
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle){
-    static signed portBASE_TYPE xHigherPriorityTaskWoken;
-    /* Set transmission flag: trasfer complete*/
-//    kprintf("UART error:%x ",UartHandle->ErrorCode);
-    *tmpbuffer = UartHandle->Instance->DR;
-    xSemaphoreGiveFromISR(_rx_wait_sem, &xHigherPriorityTaskWoken);
     if (xHigherPriorityTaskWoken) {
         taskYIELD();
     }
@@ -272,6 +251,98 @@ void USARTx_DMA_TX_IRQHandler(void)
   HAL_DMA_IRQHandler(UartHandle.hdmatx);
 }
 
+HAL_StatusTypeDef UART_Transmit_IT(UART_HandleTypeDef *huart);
+
+static HAL_StatusTypeDef UART_Receive_IT(UART_HandleTypeDef *huart) {
+    uint32_t tmp1 = 0;
+    BaseType_t isHigherPriorityTaskWoken = 0;
+
+    tmp1 = huart->State;
+    if(huart->Init.WordLength == UART_WORDLENGTH_9B) {
+        if(huart->Init.Parity == UART_PARITY_NONE) {
+            // Only properly work when queue item size is 2 byte or more
+            uint16_t r = (uint16_t)(huart->Instance->DR & (uint16_t)0x01FF);
+            xQueueSendToBackFromISR(rxQueue, &r, &isHigherPriorityTaskWoken);
+        } else {
+            uint8_t r = (uint8_t)(huart->Instance->DR & (uint8_t)0xFF);
+            xQueueSendToBackFromISR(rxQueue, &r, &isHigherPriorityTaskWoken);
+        }
+    } else {
+        if(huart->Init.Parity == UART_PARITY_NONE) {
+            uint8_t r = (uint8_t)(huart->Instance->DR & (uint8_t)0xFF);
+            xQueueSendToBackFromISR(rxQueue, &r, &isHigherPriorityTaskWoken);
+        } else {
+            uint8_t r = (uint8_t)(huart->Instance->DR & (uint8_t)0x7F);
+            xQueueSendToBackFromISR(rxQueue, &r, &isHigherPriorityTaskWoken);
+        }
+    }
+    if(isHigherPriorityTaskWoken) taskYIELD();
+    return HAL_OK;
+}
+
+void UART_IRQHandler(UART_HandleTypeDef *huart) {
+    uint32_t tmp1 = 0, tmp2 = 0;
+
+    tmp1 = __HAL_UART_GET_FLAG(huart, UART_FLAG_PE);
+    tmp2 = __HAL_UART_GET_IT_SOURCE(huart, UART_IT_PE);
+    /* UART parity error interrupt occurred */
+    if((tmp1 != RESET) && (tmp2 != RESET)) {
+        __HAL_UART_CLEAR_PEFLAG(huart);
+        huart->ErrorCode |= HAL_UART_ERROR_PE;
+    }
+
+    tmp1 = __HAL_UART_GET_FLAG(huart, UART_FLAG_FE);
+    tmp2 = __HAL_UART_GET_IT_SOURCE(huart, UART_IT_ERR);
+    /* UART frame error interrupt occurred */
+    if((tmp1 != RESET) && (tmp2 != RESET)) {
+        __HAL_UART_CLEAR_FEFLAG(huart);
+        huart->State = HAL_UART_STATE_READY;
+        // Still process data, check data integrity in another way
+        UART_Receive_IT(huart);
+    }
+
+    tmp1 = __HAL_UART_GET_FLAG(huart, UART_FLAG_NE);
+    tmp2 = __HAL_UART_GET_IT_SOURCE(huart, UART_IT_ERR);
+    /* UART noise error interrupt occurred */
+    if((tmp1 != RESET) && (tmp2 != RESET)) {
+        __HAL_UART_CLEAR_NEFLAG(huart);
+        huart->ErrorCode |= HAL_UART_ERROR_NE;
+    }
+
+    tmp1 = __HAL_UART_GET_FLAG(huart, UART_FLAG_ORE);
+    tmp2 = __HAL_UART_GET_IT_SOURCE(huart, UART_IT_ERR);
+    /* UART Over-Run interrupt occurred */
+    if((tmp1 != RESET) && (tmp2 != RESET)) {
+        __HAL_UART_CLEAR_OREFLAG(huart);
+        huart->ErrorCode |= HAL_UART_ERROR_ORE;
+    }
+
+    tmp1 = __HAL_UART_GET_FLAG(huart, UART_FLAG_RXNE);
+    tmp2 = __HAL_UART_GET_IT_SOURCE(huart, UART_IT_RXNE);
+    /* UART in mode Receiver */
+    if((tmp1 != RESET) && (tmp2 != RESET)) {
+        UART_Receive_IT(huart);
+    }
+
+    tmp1 = __HAL_UART_GET_FLAG(huart, UART_FLAG_TXE);
+    tmp2 = __HAL_UART_GET_IT_SOURCE(huart, UART_IT_TXE);
+    /* UART in mode Transmitter */
+    if((tmp1 != RESET) && (tmp2 != RESET)) {
+        UART_Transmit_IT(huart);
+    }
+
+    // Ignore frame error
+    if(huart->ErrorCode != (HAL_UART_ERROR_NONE & ~HAL_UART_ERROR_FE)) {
+        /* Set the UART state ready to be able to start again the process */
+        huart->State = HAL_UART_STATE_READY;
+        HAL_UART_ErrorCallback(huart);
+    }
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle){
+    // TODO: Handle UART error?
+}
+
 void HAL_UART_MspDeInit(UART_HandleTypeDef *huart){
     /*##-1- Reset peripherals ##################################################*/
     /*##-2- Disable peripherals and GPIO Clocks #################################*/
@@ -328,26 +399,27 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart){
  *         used for USART data transmission
  */
 void USART1_IRQHandler(void){
-    HAL_UART_IRQHandler(&UartHandle);
+    UART_IRQHandler(&UartHandle);
 }
 void USART2_IRQHandler(void){
-    HAL_UART_IRQHandler(&UartHandle);
+    UART_IRQHandler(&UartHandle);
 }
 void USART3_IRQHandler(void){
-    HAL_UART_IRQHandler(&UartHandle);
+    UART_IRQHandler(&UartHandle);
 }
 void UART4_IRQHandler(void){
-    HAL_UART_IRQHandler(&UartHandle);
+    UART_IRQHandler(&UartHandle);
 }
 void UART5_IRQHandler(void){
-    HAL_UART_IRQHandler(&UartHandle);
+    UART_IRQHandler(&UartHandle);
 }
 void USART6_IRQHandler(void){
-    HAL_UART_IRQHandler(&UartHandle);
+    UART_IRQHandler(&UartHandle);
 }
 void UART7_IRQHandler(void){
-    HAL_UART_IRQHandler(&UartHandle);
+    UART_IRQHandler(&UartHandle);
 }
 void UART8_IRQHandler(void){
-    HAL_UART_IRQHandler(&UartHandle);
+    UART_IRQHandler(&UartHandle);
 }
+

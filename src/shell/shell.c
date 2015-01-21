@@ -28,11 +28,13 @@ bool InitShell(){
 
 static void ShellTask(void *args){
     uint8_t buf[64]; // A size enough for all command
+    StartUartRXInterrupt();
     kputs("Shell Enabled.");
     while(1){
         uint8_t *cur = buf;
         do{
             UART_recv_IT(cur,1);
+            kprintf("%x ",*cur);
         }while(*cur++ != (uint8_t)0x86);
         int len = cur - buf - 1;
 

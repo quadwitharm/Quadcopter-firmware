@@ -136,6 +136,5 @@ static void ControllerUpdate(){
     }else{
         mFR = mFL = mBL = mBR = 0.0f;
     }
-
 }
 
