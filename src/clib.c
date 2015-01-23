@@ -1,7 +1,5 @@
 #include "clib.h"
 
-#include <stdarg.h>
-
 #include "uart.h"
 #include "shell/send.h"
 #ifdef  USE_FULL_ASSERT
@@ -17,11 +15,6 @@ void assert_failed(uint8_t* file, uint32_t line){
     while (1);
 }
 #endif
-
-/*
- * Not include stdio.h because of conflict of function name.
- */
-int vsnprintf (char * s, size_t n, const char * format, va_list arg );
 
 void kputs(const char *str){
     const uint8_t head = 0x03;
@@ -57,4 +50,3 @@ int kprintf(const char *format, ...){
     va_end(args);
     return ret;
 }
-

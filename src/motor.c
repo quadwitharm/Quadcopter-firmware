@@ -1,11 +1,8 @@
 #include "motor.h"
 
-#include "task.h"
-#include "semphr.h"
-
 #include "stm32f4xx_hal_tim.h"
 
-#define GPIO_PIN_CHANNEL1 GPIO_PIN_5  // PA0
+#define GPIO_PIN_CHANNEL1 GPIO_PIN_5  // PA5
 #define GPIO_PIN_CHANNEL2 GPIO_PIN_3  // PB3
 #define GPIO_PIN_CHANNEL3 GPIO_PIN_10 // PB10
 #define GPIO_PIN_CHANNEL4 GPIO_PIN_3  // PA3
@@ -14,19 +11,29 @@
 #define MIN_PULSE  90000
 #define PULSE_RANGE (MAX_PULSE - MIN_PULSE)
 
+/*! Configure to use open drain mode if external power supply is used */
 #ifdef USE_OPENDRAIN
     #define TIM_GPIO_OTYPE GPIO_MODE_AF_OD;
-    #define PULSE(Speed) ((Speed) * PULSE_RANGE + MIN_PULSE)
 #else
     #define TIM_GPIO_OTYPE GPIO_MODE_AF_PP;
-    #define PULSE(Speed) ((Speed) * PULSE_RANGE + MIN_PULSE)
 #endif
 
+/*! Calculate the actual PWM duty cycle */
+#define PULSE(Speed) ((Speed) * PULSE_RANGE + MIN_PULSE)
 
+/*! Use busy loop to wait esc startup at initial time */
+#define WAIT_ESC 0
+
+/* HAL Timer Handles */
 TIM_HandleTypeDef TIM2_Handle;
 static TIM_OC_InitTypeDef OCConfig;
 static TIM_ClockConfigTypeDef ClockSourceConfig;
 
+/**
+ * @brief  Initialize the timer PWM periph, configure Controller timer interrupt
+ * @param  None
+ * @retval Success of not
+ */
 bool Init_Motor(){
     HAL_StatusTypeDef status = HAL_OK;
 
@@ -62,10 +69,11 @@ bool Init_Motor(){
     status = HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_3);
     status = HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_4);
 
-
+#if WAIT_ESC
     kputs("Wait ESC to be initialized\r\n");
-//    for(int i = 0 ; i < 100000000;++i);
-
+        for(int i = 0 ; i < 100000000;++i);
+#endif
+    // Update interrupt for controller task
     HAL_NVIC_SetPriority(TIM2_IRQn, 11, 0);
     HAL_TIM_Base_Start_IT(&TIM2_Handle);
 
@@ -73,6 +81,11 @@ bool Init_Motor(){
     return true;
 }
 
+/**
+ * @brief      API for update the PWM output
+ * @parami[in] speed Motor output range from 0.0 - 1.0, GPIO pin PA5 PB3 PB10 PA3
+ * @retval     None
+ */
 void UpdateMotorSpeed(float speed[4]){
     OCConfig.Pulse = PULSE(speed[0]);
     HAL_TIM_PWM_ConfigChannel(&TIM2_Handle, &OCConfig, TIM_CHANNEL_1);
@@ -89,6 +102,11 @@ void UpdateMotorSpeed(float speed[4]){
     HAL_TIM_PWM_Start(&TIM2_Handle, TIM_CHANNEL_4);
 }
 
+/**
+ * @brief      Initialize low level periph
+ * @parami[in] The TIM Handle to initialize
+ * @retval     None
+ */
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
     GPIO_InitTypeDef   GPIO_InitStruct;
 

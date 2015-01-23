@@ -42,7 +42,6 @@ void TIM2_IRQHandler(void){
         if(__HAL_TIM_GET_ITSTATUS(&TIM2_Handle, TIM_IT_UPDATE) !=RESET) {
             __HAL_TIM_CLEAR_IT(&TIM2_Handle, TIM_IT_UPDATE);
             if(pdTRUE == xTaskResumeFromISR(controllerTaskHandle)){
-//              vPortYield();
                 taskYIELD();
             }
         }

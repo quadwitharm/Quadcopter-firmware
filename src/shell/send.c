@@ -3,6 +3,14 @@
 #include "task.h"
 #include "uart.h"
 
+/**
+ * @brief      Send a command that have two headers
+ * @param[in]  head  First byte of header
+ * @param[in]  head2 Second byte of header
+ * @param[in]  content Content of command
+ * @param[in]  len Length of content
+ * @retval None
+ */
 void SendCommand_3(uint8_t head,uint8_t head2,uint8_t content[],int len){
     taskENTER_CRITICAL();
     uint8_t inbuf[len + 5];
@@ -25,6 +33,13 @@ void SendCommand_3(uint8_t head,uint8_t head2,uint8_t content[],int len){
     taskEXIT_CRITICAL();
 }
 
+/**
+ * @brief      Send a command that have one header
+ * @param[in]  head  First byte of header
+ * @param[in]  content Content of command
+ * @param[in]  len Length of content
+ * @retval None
+ */
 void SendCommand_2(uint8_t head,uint8_t content[],int len){
     taskENTER_CRITICAL();
     uint8_t inbuf[len + 4];

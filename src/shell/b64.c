@@ -5,13 +5,16 @@ static const char cd64[]={62,-1,-1,-1,63,52,53,54,55,56,57,58,59,60,61,-1,-1,-1,
                 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,-1,-1,-1,
                 -1,-1,-1,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51};
 
-static void encodeblock(uint8_t *in,uint8_t *out,int len ){
-    out[0] = (uint8_t) cb64[ (uint16_t)(in[0] >> 2) ];
-    out[1] = (uint8_t) cb64[ (uint16_t)(((in[0] & 0x03) << 4) | ((in[1] & 0xf0) >> 4)) ];
-    out[2] = (uint8_t) (len > 1 ? cb64[ (uint16_t)(((in[1] & 0x0f) << 2) | ((in[2] & 0xc0) >> 6)) ] : '=');
-    out[3] = (uint8_t) (len > 2 ? cb64[ (uint16_t)(in[2] & 0x3f) ] : '=');
-}
+static void encodeblock(uint8_t *in,uint8_t *out,int len );
+static void decodeblock( uint8_t *in, uint8_t *out );
 
+/**
+ * @brief      Encode array of binary data
+ * @param[in]  in The binary data to be encoded
+ * @param[out] out Encoded base64 string
+ * @param[in]  len Length of input data
+ * @retval None
+ */
 void b64Encode(uint8_t *in,uint8_t *out,int len){
     uint8_t inbuf[3];
     uint8_t outbuf[4];
@@ -26,7 +29,7 @@ void b64Encode(uint8_t *in,uint8_t *out,int len){
 
     while(index_in < len){
         l = 0;
-        for(i=0;i<3;i++){            
+        for(i=0;i<3;i++){
             if(index_in < len){
                 inbuf[i] = in[index_in++];
                 l++;
@@ -43,13 +46,14 @@ void b64Encode(uint8_t *in,uint8_t *out,int len){
     }
 }
 
-
-static void decodeblock( uint8_t *in, uint8_t *out ){   
-    out[ 0 ] = (uint8_t ) (in[0] << 2 | in[1] >> 4);
-    out[ 1 ] = (uint8_t ) (in[1] << 4 | in[2] >> 2);
-    out[ 2 ] = (uint8_t ) (((in[2] << 6) & 0xc0) | in[3]);
-}
-
+/**
+ * @brief      Decode array of base64 string
+ * @param[in]  in The base64 string to be decoded
+ * @param[out] out Decoded binary data
+ * @param[in]  len Length of base64 string
+ * @param[out] outl Length of actual decoded string
+ * @retval     Successful or not
+ */
 bool b64Decode(uint8_t *in,uint8_t *out,int len,int *outl){
     uint8_t inbuf[4];
     uint8_t outbuf[3];
@@ -81,22 +85,53 @@ bool b64Decode(uint8_t *in,uint8_t *out,int len,int *outl){
             decodeblock( inbuf, outbuf );
             *outl += l -1 ;
             for( i = 0; i < l - 1; i++ ){
-                out[index_out++] = outbuf[i];                
+                out[index_out++] = outbuf[i];
             }
         }
     }
     return true;
 }
 
+/**
+ * @brief      Get buffer size for an encode process
+ * @param[in]  len The size of data to be encoded
+ * @retval None
+ */
 int getB64EncodeLen(int len){
     return ((len + ( (len % 3) ? (3 - (len % 3)) : 0) ) / 3) * 4;
 }
 
+/**
+ * @brief      Get buffer size for a decode process
+ * @param[in]  len The size of data to be decoded
+ * @retval None
+ */
 int getB64DecodeLen(int len){
     return (len * 3) >> 2;
 }
 
+/**
+ * @brief      Encode a block(1 ~ 3 bytes) of binary data
+ * @param[in]  in The binary data to be encoded
+ * @param[out] out Encoded base64 string
+ * @param[in]  len Length of input data
+ * @retval None
+ */
+static void encodeblock(uint8_t *in,uint8_t *out,int len ){
+    out[0] = (uint8_t) cb64[ (uint16_t)(in[0] >> 2) ];
+    out[1] = (uint8_t) cb64[ (uint16_t)(((in[0] & 0x03) << 4) | ((in[1] & 0xf0) >> 4)) ];
+    out[2] = (uint8_t) (len > 1 ? cb64[ (uint16_t)(((in[1] & 0x0f) << 2) | ((in[2] & 0xc0) >> 6)) ] : '=');
+    out[3] = (uint8_t) (len > 2 ? cb64[ (uint16_t)(in[2] & 0x3f) ] : '=');
+}
 
-
-
-
+/**
+ * @brief      Decode a block(1 ~ 4 bytes) of base64 string
+ * @param[in]  in The base64 string to be decoded
+ * @param[out] out Decoded binary data
+ * @retval None
+ */
+static void decodeblock( uint8_t *in, uint8_t *out ){
+    out[ 0 ] = (uint8_t ) (in[0] << 2 | in[1] >> 4);
+    out[ 1 ] = (uint8_t ) (in[1] << 4 | in[2] >> 2);
+    out[ 2 ] = (uint8_t ) (((in[2] << 6) & 0xc0) | in[3]);
+}
