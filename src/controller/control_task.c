@@ -57,7 +57,7 @@ static void Controller_Task(void *args){
              mFR = mFL = mBL = mBR = 0.0f;
         }
         UpdateMotorSpeed( (float []){ mFR, mFL, mBL, mBR } );
-        if(outputClock++ == 6){
+        if(outputClock++ == 10){
             sendControlInfo();
             sendSensorInfo();
             outputClock = 0;
