@@ -60,7 +60,7 @@ bool InitSensorTask(){
             (portCHAR *)"IMU data fetch",
             512,
             NULL,
-            tskIDLE_PRIORITY + 3,
+            tskIDLE_PRIORITY + 4,
             &recvTaskHandle);
     if(ret != pdPASS)return false;
     return true;
@@ -151,7 +151,6 @@ void Process(){
     if(gyroEstimateAngle.pitch <-180) gyroEstimateAngle.pitch += 360;
     if(gyroEstimateAngle.yaw > 180) gyroEstimateAngle.yaw -= 360;
     if(gyroEstimateAngle.yaw <-180) gyroEstimateAngle.yaw += 360;
-    struct Angle3D gyroAngle = gyroEstimateAngle;
     // Make a unit vector of force
     float F = sqrtf(accel.roll * accel.roll + accel.pitch * accel.pitch + accel.yaw * accel.yaw);
     float F_inverse = 1 / F;
@@ -163,7 +162,6 @@ void Process(){
         -getPitch(x,y,z,gyroEstimateAngle.pitch),
         atan2(compass.roll, compass.pitch)*57.296,
     };
-    struct Angle3D accelAngle = AccelEstimateAngle;
     // Conplementary filter
     xAttitude = ComplementaryFilter(&gyroEstimateAngle,&AccelEstimateAngle);
 #endif
@@ -176,7 +174,7 @@ void SensorEnable(bool enable){
 
     if(enable){
         HAL_NVIC_EnableIRQ(TIM4_IRQn);
-        InitSensorTask();
+        InitSensorPeriph();
         //HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
         I2C_PowerOn();
     }else{
@@ -271,21 +269,20 @@ void Init_Attitude(){
     Init_quaternion(EularAngle);
 }
 
+#define SEND_GYRO 1
+#define SEND_ACCEL 1
+#define SEND_ATTITUDE 1
+
 void sendSensorInfo(){
     const uint8_t head = 0x01;
 
-    SendCommand_3( head, 0x00, (uint8_t *)(float [])
-        { lastAngularSpeed.roll, lastAngularSpeed.pitch, lastAngularSpeed.yaw }, 12);
+    taskENTER_CRITICAL();
+    float gyro[3] = {lastAngularSpeed.roll, lastAngularSpeed.pitch, lastAngularSpeed.yaw};
+    float accel[3] = {acceleration.roll, acceleration.pitch, acceleration.yaw};
+    float att[3] = {xAttitude.roll, xAttitude.pitch, xAttitude.yaw};
+    taskEXIT_CRITICAL();
 
-    SendCommand_3( head, 0x01, (uint8_t *)(float [])
-        { acceleration.roll, acceleration.pitch, acceleration.yaw},12);
-
-//    SendCommand_3( head, 0x02, (uint8_t *)(float [])
-//        {gyroAngle.roll, gyroAngle.pitch,gyroAngle.yaw},12);
-//
-//    SendCommand_3( head, 0x03, (uint8_t *)(float [])
-//        {accelAngle.roll, accelAngle.pitch,accelAngle.yaw},12);
-
-    SendCommand_3( head, 0x04, (uint8_t *)(float [])
-        {xAttitude.roll, xAttitude.pitch,xAttitude.yaw},12);
+    if(SEND_GYRO)SendCommand_3( head, 0x00, (uint8_t *)gyro, 12);
+    if(SEND_ACCEL)SendCommand_3( head, 0x01, (uint8_t *)accel, 12);
+    if(SEND_ATTITUDE)SendCommand_3( head, 0x04, (uint8_t *)att, 12);
 }

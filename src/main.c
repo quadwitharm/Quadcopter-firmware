@@ -12,6 +12,7 @@
 #include "sensor/sensor.h"
 #include "controller/control_task.h"
 #include "shell/shell.h"
+#include "shell/send.h"
 
 int main(void){
     HAL_Init();
@@ -21,6 +22,7 @@ int main(void){
         /* Something wrong, Freeze */
         while(1);
     }
+    Init_IO();
     UART_send((uint8_t []){(uint8_t)0xFF}, 1);
     kputs("USART test\r\n");
 
@@ -35,6 +37,9 @@ int main(void){
     }
     if(!InitShell()){
         kputs("Initialize shell task failed!\r\n");
+    }
+    if(!Init_SendInfoTask()){
+        kputs("Initialize information task failed!\r\n");
     }
 
     kputs("Initialization complete, Start schedular!\r\n");

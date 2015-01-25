@@ -55,13 +55,22 @@ void setControllerEnable( bool set ){
     controllerEnable = set;
 }
 
+#define SEND_MOTOR 1
+#define SEND_RATE_PID 1
+#define SEND_STAB_PID 1
+#define SEND_SETPOINT 1
+
 void sendControlInfo(){
     const uint8_t head = 0x02;
+    taskENTER_CRITICAL();
+    float motor[] = { mFR, mFL, mBL, mBR };
+    float ratepid[] = {pids[ROLL_RATE].out, pids[PITCH_RATE].out,pids[YAW_RATE].out};
+    float stabpid[] = {pids[ROLL].out, pids[PITCH].out,pids[YAW].out};
+    float setpoint[] = {setPoint[THR_C]};
+    taskEXIT_CRITICAL();
 
-    SendCommand_3(head,0x00, (uint8_t *)(float []){ mFR, mFL, mBL, mBR },16);
-    SendCommand_3(head,0x01, (uint8_t *)(float []){pids[ROLL_RATE].out,
-        pids[PITCH_RATE].out,pids[YAW_RATE].out},12);
-    SendCommand_3(head,0x02, (uint8_t *)(float []){pids[ROLL].out,
-        pids[PITCH].out,pids[YAW].out},12);
-    SendCommand_3(head,0x03, (uint8_t *)&setPoint[THR_C],4);
+    if(SEND_MOTOR)SendCommand_3(head,0x00, (uint8_t *)motor, 16);
+    if(SEND_RATE_PID)SendCommand_3(head,0x01, (uint8_t *)ratepid, 12);
+    if(SEND_STAB_PID)SendCommand_3(head,0x02, (uint8_t *)stabpid, 12);
+    if(SEND_SETPOINT)SendCommand_3(head,0x03, (uint8_t *)setpoint, 4);
 }

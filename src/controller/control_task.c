@@ -15,7 +15,9 @@ float mFR,mBL,mFL,mBR;
 float setPoint[NUM_RC_IN] = {};
 bool controllerEnable = true;
 
+#ifdef USE_RATE_PID
 static float yaw_target = 0.0f;
+#endif
 
 static xTaskHandle controllerTaskHandle;
 
@@ -29,7 +31,7 @@ bool Init_Controller(){
             (portCHAR *)"ControllerTask",
             512,
             NULL,
-            tskIDLE_PRIORITY + 2,
+            tskIDLE_PRIORITY + 3,
             &controllerTaskHandle);
     if(ret != pdPASS)return false;
     return ret;
@@ -49,7 +51,6 @@ void TIM2_IRQHandler(void){
 }
 static void Controller_Task(void *args){
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
-    int outputClock = 0;
     while(1){
         if( controllerEnable ){
             ControllerUpdate();
@@ -57,14 +58,8 @@ static void Controller_Task(void *args){
              mFR = mFL = mBL = mBR = 0.0f;
         }
         UpdateMotorSpeed( (float []){ mFR, mFL, mBL, mBR } );
-        if(outputClock++ == 10){
-            sendControlInfo();
-            sendSensorInfo();
-            outputClock = 0;
-        }
 
         // Timer interrupt will wake up this task
- //       kputs("Controller_Task Suspend\r\n");
         vTaskSuspend(controllerTaskHandle);
     }
 }
@@ -75,7 +70,7 @@ static void Controller_Task(void *args){
 }while(0)
 
 static void ControllerUpdate(){
-    // Read data, TODO: protect the data
+    // Read data
     taskENTER_CRITICAL();
     sensorData[ROLL] = xAttitude.roll;
     sensorData[PITCH] = xAttitude.pitch;
@@ -97,8 +92,9 @@ static void ControllerUpdate(){
     float pitch_out = runPID(&pids[PITCH], setPoint[PITCH_C], sensorData[PITCH]);
 #endif
 
-    float yaw_stab,yaw_out;
+    float yaw_out = 0.0f;
 #ifdef USE_RATE_PID
+    float yaw_stab;
     if(setPoint[YAW_C] > 0.5f && setPoint[YAW_C] < -0.5f){
         //rate mode
         //setPoint = rate -> to rate pid
