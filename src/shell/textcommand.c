@@ -17,12 +17,12 @@ void handleTextCommand(uint8_t *buf){
     uint16_t len = (((uint16_t)buf[1]) << 8) + buf[0];
     char *argv[ARGV_SIZE];
     char *line = (char *)buf + 2;
-    (void)len;
+    line[len] = '\0';
 
     int argc = parseCommand(line, argv);
     commandfunc_t toExec = findCommand(argv[0]);
     if(toExec == NULL){
-        kputs("Command not found!\r\n");
+        kprintf("Command not found: %s\r\n",line);
     }else{
         toExec(argc,argv);
     }
