@@ -15,6 +15,8 @@ float mFR,mBL,mFL,mBR;
 float setPoint[NUM_RC_IN] = {};
 bool controllerEnable = true;
 
+// #define USE_RATE_PID
+
 #ifdef USE_RATE_PID
 static float yaw_target = 0.0f;
 #endif
@@ -82,11 +84,11 @@ static void ControllerUpdate(){
 
 #ifdef USE_RATE_PID
     // Calculate PIDs
-    //float roll_stab = runPID(&pids[ROLL], setPoint[ROLL_C], sensorData[ROLL]);
-    //float roll_out = runPID(&pids[ROLL_RATE], roll_stab, sensorData[ROLL_RATE]);
+    float roll_stab = runPID(&pids[ROLL], setPoint[ROLL_C], sensorData[ROLL]);
+    float roll_out = runPID(&pids[ROLL_RATE], roll_stab, sensorData[ROLL_RATE]);
 
-    //float pitch_stab = runPID(&pids[PITCH], setPoint[PITCH_C]/*, sensorData[PITCH]);
-    //float pitch_out = runPID(&pids[PITCH_RATE], pitch_stab, sensorData[PITCH_RATE]);
+    float pitch_stab = runPID(&pids[PITCH], setPoint[PITCH_C], sensorData[PITCH]);
+    float pitch_out = runPID(&pids[PITCH_RATE], pitch_stab, sensorData[PITCH_RATE]);
 #else
     float roll_out = runPID(&pids[ROLL], setPoint[ROLL_C], sensorData[ROLL]);
     float pitch_out = runPID(&pids[PITCH], setPoint[PITCH_C], sensorData[PITCH]);
@@ -106,7 +108,7 @@ static void ControllerUpdate(){
         //stabilized mode
         //setPoint = angle = 0.0
 
-        yaw_stab = runPID_warp(&pids[YAW], yaw_target, sensorData[YAW], 180.0f, -180.0f) setPoint[YAW_C];
+        yaw_stab = runPID_warp(&pids[YAW], yaw_target, sensorData[YAW], 180.0f, -180.0f);
         yaw_out = runPID(&pids[YAW_RATE], yaw_stab, sensorData[YAW_RATE]);
     }
 #else
