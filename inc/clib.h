@@ -16,6 +16,8 @@
 
 void assert_failed(uint8_t* file, uint32_t line);
 
+extern int schestart;
+
 void kputs(const char *);
 void kputc(char);
 void kgets(char buf[],int len);

@@ -41,8 +41,6 @@ HAL_StatusTypeDef UART_init(USART_TypeDef *uart, uint32_t BaudRate){
     return HAL_UART_Init(&UartHandle);
 }
 
-int schestart = 0;
-
 HAL_StatusTypeDef UART_send(uint8_t* data, uint16_t length){ 
     //blocking call
     HAL_StatusTypeDef status = 0;
