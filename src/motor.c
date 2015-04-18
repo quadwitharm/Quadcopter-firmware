@@ -2,7 +2,7 @@
 
 #include "stm32f4xx_hal_tim.h"
 
-#define GPIO_PIN_CHANNEL1 GPIO_PIN_5  // PA5
+#define GPIO_PIN_CHANNEL1 GPIO_PIN_15 // PA15
 #define GPIO_PIN_CHANNEL2 GPIO_PIN_3  // PB3
 #define GPIO_PIN_CHANNEL3 GPIO_PIN_10 // PB10
 #define GPIO_PIN_CHANNEL4 GPIO_PIN_3  // PA3
