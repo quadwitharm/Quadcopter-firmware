@@ -2,6 +2,7 @@
 #include "sensor/l3g4200d.h"
 #include "sensor/adxl345.h"
 #include "sensor/hmc5883l.h"
+#include "sensor/bmp180.h"
 #include "sensor/i2c.h"
 #include "sensor/filter.h"
 #include "sensor/MadgwickAHRS.h"
@@ -45,6 +46,7 @@ bool InitSensorPeriph(){
     L3G4200D_Init();
     ADXL345_Init();
     HMC5883L_Init();
+    BMP180_Init();
 
     return true;
 }
@@ -197,6 +199,7 @@ void SensorTask(void *arg){
         L3G4200D_Recv();
         ADXL345_Recv();
         HMC5883L_Recv();
+        BMP180_Recv();
 
         /* Process */
         Process();
@@ -285,4 +288,6 @@ void sendSensorInfo(){
     if(SEND_GYRO)SendCommand_3( head, 0x00, (uint8_t *)gyro, 12);
     if(SEND_ACCEL)SendCommand_3( head, 0x01, (uint8_t *)accel, 12);
     if(SEND_ATTITUDE)SendCommand_3( head, 0x04, (uint8_t *)att, 12);
+
+    kprintf("Pressure: %d, Temperature: %d",BMP180.Pressure, BMP180.Temperature);
 }
