@@ -16,6 +16,8 @@ void assert_failed(uint8_t* file, uint32_t line){
 }
 #endif
 
+int schestart = 0;
+
 void kputs(const char *str){
     const uint8_t head = 0x03;
     SendCommand_2(head, (uint8_t *)str, strlen(str));
