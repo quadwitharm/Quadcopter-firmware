@@ -57,21 +57,25 @@ void BMP180_Init(){
 
 void BMP180_Recv(){
 
-    // Read UT	
-    Write_BMP180(PRESSURE3, TEMPERATURE);
+    /* Read UT */
+    Write_BMP180(CONTROL_REG, TEMPERATURE);
     vTaskDelay(5);
     uint8_t dataT[2];
     READ_BMP180(0xF6, &dataT[0], 1);
     READ_BMP180(0xF7, &dataT[1], 1);
-    UT = dataT[0] << 8 | dataT[1];
+    UT = (dataT[0] << 8) | dataT[1];
 
-    Write_BMP180(PRESSURE3, PRESSURE0 | (OverSampling << 6));
+    /* Read UD */
+    Write_BMP180(CONTROL_REG, 0x34 + (OverSampling << 6));
     vTaskDelay(26);
     uint8_t dataP[3] = {0};
     READ_BMP180(0xF6, &dataP[0], 1);
     READ_BMP180(0xF7, &dataP[1], 1);
     READ_BMP180(0xF8, &dataP[2], 1);
-    UP = dataP[0] << 16 | dataP[1] << 8 | dataP[2] >> (8-OverSampling);
+    /* Watch the parentheses !!! */
+    UP = ((dataP[0] << 16) | (dataP[1] << 8) | (dataP[2])) >> (8-OverSampling);
+
+    /* The following algorithm please refer to BMP180 datasheet */
 
     /* Calcualte Temperature */
     long x1 = (((long)UT - (long)BMP180.int16.AC6) * (long)BMP180.int16.AC5) >> 15;
@@ -80,27 +84,23 @@ void BMP180_Recv(){
     BMP180.Temperature = (B5 + 8) >>4;
 
     /* Calculate BMP180.Pressure */
-    // Calculate B3
     long B6 = B5 - 4000;
     x1 = (BMP180.int16.B2 * ((B6 * B6) >> 12)) >> 11;
     x2 = (BMP180.int16.AC2 * B6) >> 11;
     long x3 = x1 + x2;
-    long B3 = ((((((long)BMP180.int16.AC1)<<2) + x3)<<OverSampling) + 2)>>2;
-
-    // Calculate B4
+    long B3 = (((((BMP180.int16.AC1)<<2) + x3)<<OverSampling) + 2)>>2;
     x1 = (BMP180.int16.AC3 * B6) >> 13;
     x2 = (BMP180.int16.B1 * ((B6 * B6) >> 12)) >> 16;
     x3 = ((x1 + x2) + 2)>>2;
     unsigned long B4 = (BMP180.int16.AC4 * (unsigned long)(x3 + 32768)) >> 15;
-
-    unsigned long B7 = ((unsigned long)(UP-B3) * (50000 >> OverSampling));
-    if (B7 < 0x80000000)
+    unsigned long B7 = (((unsigned long)(UP)-B3) * (50000 >> OverSampling));
+    if (B7 < 0x80000000){
         BMP180.Pressure = (B7<<1)/B4;
-    else
+    } else{
         BMP180.Pressure = (B7/B4)<<1;
-
+    }
     x1 = (BMP180.Pressure>>8)*(BMP180.Pressure>>8);
     x1 = (x1*3038)>>16;
     x2 = (-7357 * BMP180.Pressure)>>16;
-    BMP180.Pressure += (x1 + x2 + 3791)>>4;
+    BMP180.Pressure = BMP180.Pressure + ((x1 + x2 + 3791)>>4);
 }

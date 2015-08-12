@@ -90,6 +90,7 @@ extern "C" {
 #define PRESSURE1    0x74
 #define PRESSURE2    0xB4
 #define PRESSURE3    0xF4
+#define CONTROL_REG  0xF4
 #define OverSampling 3
 
 #ifdef __cplusplus
