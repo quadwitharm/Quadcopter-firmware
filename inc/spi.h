@@ -7,7 +7,6 @@
 
 #include "stm32f429i_discovery.h"
 #include "stm32f4xx_hal.h"
-#include "clib.h"
 
 bool SPI_init(void);
 void SPI_send(uint8_t* data, uint16_t length);

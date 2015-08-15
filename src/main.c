@@ -43,7 +43,7 @@ int main(void){
     }
 
     kputs("Initialization complete, Start schedular!\r\n");
-    schestart = 1;
+//    schestart = 1;
     vTaskStartScheduler();
 
     /* Should not reach here */

@@ -49,7 +49,10 @@ HAL_StatusTypeDef UART_send(uint8_t* data, uint16_t length){
             status = HAL_UART_Transmit(&UartHandle, data++, 1, 10000);
         }
     }else{
-        UART_send_IT(data,length);
+        for(;length>0;length--){
+            UART_send_IT(data++,1);
+        }
+//        UART_send_IT(data,length);
     }
     return status;
 }
