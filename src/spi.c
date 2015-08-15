@@ -1,5 +1,4 @@
 #include "spi.h"
-#include "clib.h"
 
 #include "semphr.h"
 
@@ -81,7 +80,11 @@ void StartSPIRXInterrupt(){
 
 
 void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi){	
-    GPIO_InitTypeDef  GPIO_InitStruct{ .Mode=GPIO_MODE_AF_PP, .Pull=GPIO_PULLUP,Speed=GPIO_SPEED_FAST};
+	GPIO_InitTypeDef GPIO_InitStruct = { 
+		.Mode=GPIO_MODE_AF_PP, 
+		.Pull=GPIO_PULLUP,
+		.Speed=GPIO_SPEED_FAST
+	};
 
     /* SPI1:
      *  + SCK:  PB3
@@ -117,8 +120,8 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi){
 
         /*##-3- Configure the NVIC for SPI #########################################*/
         /* NVIC for SPI */
-        HAL_NVIC_SetPriority(SPIx_IRQn, 0, 1);
-        HAL_NVIC_EnableIRQ(SPIx_IRQn);
+        HAL_NVIC_SetPriority(SPI1_IRQn, 12, 0);
+        HAL_NVIC_EnableIRQ(SPI1_IRQn);
     }else if(hspi->Instance ==SPI2){
         __SPI2_CLK_ENABLE();
         __GPIOB_CLK_ENABLE();
@@ -132,6 +135,10 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi){
 
         GPIO_InitStruct.Pin = GPIO_PIN_15;
         HAL_GPIO_Init(GPIO_PORT_B, &GPIO_InitStruct);
+
+		HAL_NVIC_SetPriority(SPI2_IRQn, 12, 0);
+		HAL_NVIC_EnableIRQ(SPI2_IRQn);
+
     }
 }
 

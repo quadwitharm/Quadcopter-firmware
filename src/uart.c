@@ -115,7 +115,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
         GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
         HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-        HAL_NVIC_SetPriority(USART2_IRQn, 0, 1);
+        HAL_NVIC_SetPriority(USART2_IRQn, 12, 0);
         HAL_NVIC_EnableIRQ(USART2_IRQn);
     }else if(huart->Instance == USART3){// tx/rx: PB10/PB11, PC10/PC11, PD8/PD9
         __USART3_CLK_ENABLE();
@@ -133,7 +133,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
         GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
         HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-        HAL_NVIC_SetPriority(UART4_IRQn, 0, 1);
+        HAL_NVIC_SetPriority(UART4_IRQn, 12, 0);
         HAL_NVIC_EnableIRQ(UART4_IRQn);
     }else if(huart->Instance == UART5){// tx/rx: PC12/PD2
         __UART5_CLK_ENABLE();
@@ -154,7 +154,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
         GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_7;
         HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-        HAL_NVIC_SetPriority(USART6_IRQn, 0, 1);
+        HAL_NVIC_SetPriority(USART6_IRQn, 12, 0);
         HAL_NVIC_EnableIRQ(USART6_IRQn);
     }else if(huart->Instance == UART7){// tx/rx: PE8/PE7, PF7/PF6
         __UART7_CLK_ENABLE();
@@ -163,7 +163,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
         GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_7;
         HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-        HAL_NVIC_SetPriority(UART7_IRQn, 0, 1);
+        HAL_NVIC_SetPriority(UART7_IRQn, 12, 0);
         HAL_NVIC_EnableIRQ(UART7_IRQn);
     }else if(huart->Instance == UART8){// tx/rx: PE1/PE0
         __UART8_CLK_ENABLE();
@@ -172,7 +172,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
         GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_0;
         HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-        HAL_NVIC_SetPriority(UART8_IRQn, 0, 1);
+        HAL_NVIC_SetPriority(UART8_IRQn, 12, 0);
         HAL_NVIC_EnableIRQ(UART8_IRQn);
     }else return;
 
