@@ -10,12 +10,12 @@
 #include "clib.h"
 
 bool SPI_init(void);
-void SPI_send(uint8_t* data, uint16_t length);
-void SPI_recv(uint8_t* data, uint16_t length);
-void SPI_send_IT(uint8_t* data, uint16_t length);
-void SPI_recv_IT(uint8_t* buffer, uint16_t length);
-void SPI_send_POLL(uint8_t* data, uint16_t length);
-void SPI_recv_POLL(uint8_t* buffer, uint16_t length);
+void SPI_send(int nspi,uint8_t* data, uint16_t length);
+void SPI_recv(int nspi,uint8_t* data, uint16_t length);
+void SPI_send_IT(int nspi,uint8_t* data, uint16_t length);
+void SPI_recv_IT(int nspi,uint8_t* buffer, uint16_t length);
+void SPI_send_POLL(int nspi,uint8_t* data, uint16_t length);
+void SPI_recv_POLL(int nspi,uint8_t* buffer, uint16_t length);
 void StartSPIRXInterrupt();
 
 #ifdef __cplusplus
