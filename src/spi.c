@@ -97,11 +97,21 @@ void SPI_recv(int nspi,uint8_t* data, uint16_t length){
      */
 }
 
+void SPI_sendRecv(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
+
+
+}
+
 void SPI_send_IT(int nspi,uint8_t* data, uint16_t length){
 
 }
 
 void SPI_recv_IT(int nspi,uint8_t* buffer, uint16_t length){
+
+}
+
+void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
+
 
 }
 
@@ -113,6 +123,10 @@ void SPI_recv_POLL(int nspi,uint8_t* buffer, uint16_t length){
 
 }
 
+void SPI_sendRecv_POLL(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
+
+
+}
 void StartSPIRXInterrupt(){
 
 }
