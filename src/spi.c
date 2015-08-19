@@ -1,5 +1,5 @@
 #include "spi.h"
-
+#include "clib.h"
 #include "semphr.h"
 
 
@@ -27,7 +27,7 @@
 #define SPIx_IRQn                        SPI4_IRQn
 #define SPIx_IRQHandler                  SPI4_IRQHandler
 
-//[0] -> spi1 ,[1] -> spi2
+//channels : [0] -> tx ,[1] -> rx
 SPI_HandleTypeDef SpiHandle[2];
 volatile xSemaphoreHandle _spi_sem[2];
 xQueueHandle rxQueue[2];
@@ -47,7 +47,7 @@ bool SPI_init(void){
      *  Configure the interrupts but do not enable.
      * */
 
-	SpiHandle[0] = (SPI_HandleTypeDef) {
+	SpiHandle[SPI_TX] = (SPI_HandleTypeDef) {
 		.Instance = SPI1,
 		.Init = {
 			.Mode = SPI_MODE_MASTER,
@@ -64,7 +64,7 @@ bool SPI_init(void){
 		}
 	};
 
-	SpiHandle[1] = (SPI_HandleTypeDef) {
+	SpiHandle[SPI_RX] = (SPI_HandleTypeDef) {
 		.Instance = SPI2,
 		.Init = {
 			.Mode = SPI_MODE_MASTER,
@@ -81,24 +81,24 @@ bool SPI_init(void){
 		}
 	};
 
-	_spi_sem[0] = xSemaphoreCreateBinary();
-	_spi_sem[1] = xSemaphoreCreateBinary();
+	_spi_sem[SPI_TX] = xSemaphoreCreateBinary();
+	_spi_sem[SPI_RX] = xSemaphoreCreateBinary();
 
-	return (HAL_SPI_Init(&SpiHandle[0]) == HAL_OK) &&
-		(HAL_SPI_Init(&SpiHandle[1]) == HAL_OK);
+	return (HAL_SPI_Init(&SpiHandle[SPI_TX]) == HAL_OK) &&
+		(HAL_SPI_Init(&SpiHandle[SPI_RX]) == HAL_OK);
 }
 
 void SPI_sendRecv(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 
-
+	if(!schestart){
+		HAL_SPI_TransmitReceive(SpiHandle[nspi],txData,
+				rxData,length);
+	}else{
+		SPI_sendRecv_IT(nspi,txData,rxData,length);
+	}
 }
 
 void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
-
-
-}
-
-void SPI_sendRecv_POLL(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 
 
 }
@@ -151,7 +151,6 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi){
 
 		HAL_NVIC_SetPriority(SPI2_IRQn, 12, 0);
 		HAL_NVIC_EnableIRQ(SPI2_IRQn);
-
 	}
 }
 
