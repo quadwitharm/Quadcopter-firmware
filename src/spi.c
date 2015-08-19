@@ -3,31 +3,6 @@
 #include "semphr.h"
 #include "task.h"
 
-
-#define SPIx                             SPI4
-#define SPIx_CLK_ENABLE()                __SPI4_CLK_ENABLE()
-#define SPIx_SCK_GPIO_CLK_ENABLE()       __GPIOE_CLK_ENABLE()
-#define SPIx_MISO_GPIO_CLK_ENABLE()      __GPIOE_CLK_ENABLE() 
-#define SPIx_MOSI_GPIO_CLK_ENABLE()      __GPIOE_CLK_ENABLE() 
-
-#define SPIx_FORCE_RESET()               __SPI4_FORCE_RESET()
-#define SPIx_RELEASE_RESET()             __SPI4_RELEASE_RESET()
-
-/* Definition for SPIx Pins */
-#define SPIx_SCK_PIN                     GPIO_PIN_2
-#define SPIx_SCK_GPIO_PORT               GPIOE
-#define SPIx_SCK_AF                      GPIO_AF5_SPI4
-#define SPIx_MISO_PIN                    GPIO_PIN_5
-#define SPIx_MISO_GPIO_PORT              GPIOE
-#define SPIx_MISO_AF                     GPIO_AF5_SPI4
-#define SPIx_MOSI_PIN                    GPIO_PIN_6
-#define SPIx_MOSI_GPIO_PORT              GPIOE
-#define SPIx_MOSI_AF                     GPIO_AF5_SPI4
-
-/* Definition for SPIx's NVIC */
-#define SPIx_IRQn                        SPI4_IRQn
-#define SPIx_IRQHandler                  SPI4_IRQHandler
-
 #define TIMEOUT 10000
 
 //channels : [0] -> tx(spi1) ,[1] -> rx(spi2)
@@ -45,7 +20,7 @@ bool SPI_init(void){
      *  + MISO: PB14
      *  + MOSI: PB15
      *
-     *  Configure the interrupts but do not enable.
+     *  Init according to NRF24L01 specs
      * */
 
 	SpiHandle[SPI_TX] = (SPI_HandleTypeDef) {
@@ -99,12 +74,13 @@ void SPI_sendRecv(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 	}
 }
 
+//block at Semaphore
 void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 	HAL_SPI_TransmitReceive_IT(&SpiHandle[nspi],txData,rxData,length);
 	while (!xSemaphoreTake(_spi_sem[nspi], portMAX_DELAY));
 }
 
-
+//called after HAL_SPI_TransmitReceive_IT complete
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
 	static signed portBASE_TYPE xHigherPriorityTaskWoken;
    	

@@ -9,6 +9,7 @@
 #include "stm32f4xx_hal.h"
 #include "clib.h"
 
+//as handler array index
 #define SPI_TX 0
 #define SPI_RX 1
 
