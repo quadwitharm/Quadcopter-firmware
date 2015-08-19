@@ -6,7 +6,7 @@
 #define DEVICE_SEND 0
 #define DEVICE_RECV 1
 
-void NRF24L01_PowerUp(int deviceNum);
+void NRF24L01_Init();
 void NRF24L01_PowerDown(int deviceNum);
 void NRF24L01_RXMode(int deviceNum);
 void NRF24L01_TXMode(int deviceNum);

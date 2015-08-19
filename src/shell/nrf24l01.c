@@ -1,5 +1,6 @@
 #include "shell/nrf24l01.h"
 
+#include "semphr.h"
 #include "spi.h"
 
 /* NRF24L01 registers */
@@ -49,6 +50,12 @@
 #define RF_CHANNEL_1 100
 #define RF_CHANNEL_2 200
 
+static SemaphoreHandle_t transmitSem;
+
+void NRF24L01_Init(){
+    transmitSem = xSemaphoreCreateMutex();
+}
+
 /*
  * @retval STATUS register
  */
@@ -60,11 +67,11 @@ static uint8_t NRF24L01_WriteBuf(int deviceNum, uint8_t cmd, uint8_t *buf, uint3
 
     /* XXX: Not completed API
      * CSN = 0;
-     * TransmitReceive_IT( spi, outbuf, inbuf, size+1 );
+     */
+    SPI_sendRecv(deviceNum, outbuf, inbuf, size+1 );
+    /*
      * CSN = 1;
      */
-    (void)outbuf, (void)inbuf;
-
     return inbuf[0]; /* STATUS register */
 }
 
@@ -78,13 +85,31 @@ static uint8_t NRF24L01_ReadBuf(int deviceNum, uint8_t cmd, uint8_t *buf, uint32
 
     /* XXX: Not completed API
      * CSN = 0;
-     * TransmitReceive_IT( spi, outbuf, inbuf, size+1 );
+     */
+    SPI_sendRecv(deviceNum, outbuf, inbuf, size+1 );
+    /*
      * CSN = 1;
      */
-    (void)outbuf, (void)inbuf;
     memcpy(buf, inbuf, size);
 
     return inbuf[0]; /* STATUS register */
+}
+
+/*
+ * @retval STATUS register
+ */
+static uint8_t NRF24L01_IssueCommand(int deviceNum, uint8_t cmd){
+    uint8_t inbuf[1];
+    uint8_t outbuf[1] = { cmd };
+
+    /* XXX: Not completed API
+     * CSN = 0;
+     */
+    SPI_sendRecv(deviceNum, outbuf, inbuf, 1 );
+    /*
+     * CSN = 1;
+     */
+    return inbuf[0];
 }
 
 /*
@@ -96,11 +121,11 @@ static uint8_t NRF24L01_WriteReg(int deviceNum, uint8_t cmd, uint8_t value){
 
     /* XXX: Not completed API
      * CSN = 0;
-     * TransmitReceive_IT( spi, outbuf, inbuf, 2 );
+     */
+    SPI_sendRecv(deviceNum, outbuf, inbuf, 2 );
+    /*
      * CSN = 1;
      */
-    (void)outbuf, (void)inbuf;
-
     return inbuf[0];
 }
 
@@ -113,26 +138,14 @@ static uint8_t NRF24L01_ReadReg(int deviceNum, uint8_t cmd, uint8_t *val){
 
     /* XXX: Not completed API
      * CSN = 0;
-     * TransmitReceive_IT( spi, outbuf, inbuf, size + 1 );
+     */
+    SPI_sendRecv(deviceNum, outbuf, inbuf, 2 );
+    /*
      * CSN = 1;
      */
-    (void)outbuf, (void)inbuf;
 
     *val = inbuf[1];
     return inbuf[0];
-}
-
-
-/*
- * @brief   Trasition from PowerDown mode to Standby-I mode
- * @retval  None
- */
-void NRF24L01_PowerUp(int deviceNum){
-    /*
-     * TODO:
-     * set PWR_UP = 1
-     * wait for 1.5ms
-     */
 }
 
 /*
@@ -140,16 +153,16 @@ void NRF24L01_PowerUp(int deviceNum){
  * @retval  None
  * */
 void NRF24L01_PowerDown(int deviceNum){
-    /*
-     * TODO:
-     * set PWR_UP = 0
-     */
+    uint8_t config;
+    NRF24L01_ReadReg(deviceNum, R_REGISTER(CONFIG), &config);
+    NRF24L01_WriteReg(deviceNum, W_REGISTER(CONFIG), config & (~0b00000010));
 }
 
 void NRF24L01_RXMode(int deviceNum){
-
+    /* TODO: Set CE = 0 */
     /* Reserved | RX_DR | no TX_DS | no MAX_RT | CRC | <-2Byte | PWR_UP | RX */
     NRF24L01_WriteReg(deviceNum, W_REGISTER(CONFIG), 0b00111111);
+    /* TODO: delay for 1.5ms */
     /* Reserved * 3 | no PLL_LOCK | 2MBps | 0 dBm | LNA gain */
     NRF24L01_WriteReg(deviceNum, W_REGISTER(RF_SETUP), 0b00001111);
     /* Channel */
@@ -160,18 +173,14 @@ void NRF24L01_RXMode(int deviceNum){
     NRF24L01_WriteReg(deviceNum, W_REGISTER(EN_AA), 0b00000001);
     /* Enable RX Address*/
     NRF24L01_WriteReg(deviceNum, W_REGISTER(EN_RXADDR), 0b00000001);
-
-
+    /* TODO: Set CE = 1 */
 }
 
 void NRF24L01_TXMode(int deviceNum){
-    /*
-     * TODO:
-     * Set CE = 0
-     */
-
+    /* TODO: Set CE = 0 */
     /* Reserved | no RX_DR | TX_DS | MAX_RT | CRC | <-2Byte | PWR_UP | TX */
     NRF24L01_WriteReg(deviceNum, W_REGISTER(CONFIG), 0b01001110);
+    /* TODO: delay for 1.5ms */
     /* Reserved * 3 | no PLL_LOCK | 2MBps | 0 dBm | LNA gain */
     NRF24L01_WriteReg(deviceNum, W_REGISTER(RF_SETUP), 0b00001111);
     /* Channel */
@@ -180,10 +189,7 @@ void NRF24L01_TXMode(int deviceNum){
     NRF24L01_WriteReg(deviceNum, W_REGISTER(SETUP_RETR), 0b00010011);
     /* Dynamic payload length */
     NRF24L01_WriteReg(deviceNum, W_REGISTER(DYNPD), 0b00000001);
-    /*
-     * TODO:
-     * Set CE = 1
-     */
+    /* TODO: Set CE = 1 */
 }
 
 /*
@@ -212,17 +218,20 @@ void NRF24L01_SetOutputPower(int deviceNum, uint8_t level){
 }
 
 void NRF24L01_IRQ(int deviceNum){
-    /*
-     * TODO: check irq type
-     * - TX_DS:
-     *   write 1 to TX_DS
-     *   release lock
-     * - RX_DR:
-     *   check length
-     *   send receive command
-     * - MAX_RT
-     *   not been consider at this time
-     */
+    uint8_t status = NRF24L01_IssueCommand(deviceNum, NOP);
+    if(status & 0b01000000){ /* RX_DR */
+        /*
+         *   write 1 to TX_DS
+         *   release lock
+         */
+    }else if(status & 0b00100000){ /* TX_DS */
+        /*
+         *   check length
+         *   send receive command
+         */
+    }else if(status & 0b00010000){ /* MAX_RT */
+        /* not been consider at this time */
+    }
 }
 
 void NRF24L01_SPI_IRQ(int deviceNum){
@@ -236,22 +245,22 @@ void NRF24L01_SPI_IRQ(int deviceNum){
  * the buffer size is limited under 32 bytes
  */
 void NRF24L01_TransmitPacket(int deviceNum, uint8_t buf[], uint32_t size){
-    uint8_t fifo_status, status;
+    uint8_t fifo_status;
     while(1){
+        /*
+         * XXX: can use STATUS register with NRF24L01_IssueCommand
+         */
         NRF24L01_ReadReg(deviceNum, R_REGISTER(FIFO_STATUS), &fifo_status);
         if(FIFO_STATUS & 0b00100000){ // TX FIFO full, busy waiting
             continue;
         }
 
     }
-    status = NRF24L01_WriteBuf(deviceNum, W_TX_PAYLOAD, buf, size);
+    NRF24L01_WriteBuf(deviceNum, W_TX_PAYLOAD, buf, size);
 }
 
 void NRF24L01_Transmit(int deviceNum, uint8_t buf[], uint32_t size){
-    /*
-     * TODO:
-     * lock
-     */
+    xSemaphoreTake(transmitSem, portMAX_DELAY);
     while(size > 0){
         if(size > 32){
             NRF24L01_WriteBuf(deviceNum, W_TX_PAYLOAD, buf, 32);
@@ -262,8 +271,8 @@ void NRF24L01_Transmit(int deviceNum, uint8_t buf[], uint32_t size){
             size = 0;
         }
     }
+    xSemaphoreGive(transmitSem);
 }
-
 
 void NRF24L01_Receive(int deviceNum, uint8_t buf[], uint32_t size){
     /*
