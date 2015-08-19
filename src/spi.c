@@ -8,6 +8,7 @@
 //channels : [0] -> tx(spi1) ,[1] -> rx(spi2)
 SPI_HandleTypeDef SpiHandle[2];
 volatile xSemaphoreHandle _spi_sem[2];
+volatile xSemaphoreHandle _spi_mux[2];
 
 bool SPI_init(void){
 /*    
@@ -59,6 +60,9 @@ bool SPI_init(void){
 
 	_spi_sem[SPI_TX] = xSemaphoreCreateBinary();
 	_spi_sem[SPI_RX] = xSemaphoreCreateBinary();
+	_spi_mux[SPI_TX] = xSemaphoreCreateMutex();
+	_spi_mux[SPI_RX] = xSemaphoreCreateMutex();
+
 
 	return (HAL_SPI_Init(&SpiHandle[SPI_TX]) == HAL_OK) &&
 		(HAL_SPI_Init(&SpiHandle[SPI_RX]) == HAL_OK);
@@ -76,8 +80,12 @@ void SPI_sendRecv(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 
 //block at Semaphore
 void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
+	while (!xSemaphoreTake(_spi_mux[nspi], portMAX_DELAY));
+
 	HAL_SPI_TransmitReceive_IT(&SpiHandle[nspi],txData,rxData,length);
 	while (!xSemaphoreTake(_spi_sem[nspi], portMAX_DELAY));
+
+	xSemaphoreGive(_spi_mux[nspi]);
 }
 
 //called after HAL_SPI_TransmitReceive_IT complete
