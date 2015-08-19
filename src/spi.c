@@ -1,6 +1,7 @@
 #include "spi.h"
 #include "clib.h"
 #include "semphr.h"
+#include "task.h"
 
 
 #define SPIx                             SPI4
@@ -29,7 +30,7 @@
 
 #define TIMEOUT 10000
 
-//channels : [0] -> tx ,[1] -> rx
+//channels : [0] -> tx(spi1) ,[1] -> rx(spi2)
 SPI_HandleTypeDef SpiHandle[2];
 volatile xSemaphoreHandle _spi_sem[2];
 
@@ -101,6 +102,20 @@ void SPI_sendRecv(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 	HAL_SPI_TransmitReceive_IT(&SpiHandle[nspi],txData,rxData,length);
 	while (!xSemaphoreTake(_spi_sem[nspi], portMAX_DELAY));
+}
+
+
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
+	static signed portBASE_TYPE xHigherPriorityTaskWoken;
+   	
+	if(hspi->Instance ==SPI1){
+		xSemaphoreGiveFromISR(_spi_sem[SPI_TX], &xHigherPriorityTaskWoken);
+	}else if(hspi->Instance ==SPI2){
+		xSemaphoreGiveFromISR(_spi_sem[SPI_RX], &xHigherPriorityTaskWoken);
+	}
+	if (xHigherPriorityTaskWoken) {
+		taskYIELD();
+	}
 }
 
 
