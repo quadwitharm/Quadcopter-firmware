@@ -2,6 +2,8 @@
 
 #include "semphr.h"
 #include "spi.h"
+#include "queue.h"
+#include "task.h"
 
 /* NRF24L01 registers */
 
@@ -51,9 +53,23 @@
 #define RF_CHANNEL_2 200
 
 static SemaphoreHandle_t transmitSem;
+static QueueHandle_t recvQueue;
+static QueueHandle_t pendingIRQQueue;
+static TaskHandle_t IRQ_TaskHandle;
+
+static void NRF24L01_IRQ_Task();
 
 void NRF24L01_Init(){
     transmitSem = xSemaphoreCreateMutex();
+    recvQueue = xQueueCreate(64, 1);
+    pendingIRQQueue = xQueueCreate(3, 1);
+    xTaskCreate(NRF24L01_IRQ_Task,
+                "NRF IRQ Handling Task",
+                256,
+                NULL,
+                tskIDLE_PRIORITY + 6,
+                &IRQ_TaskHandle
+                );
 }
 
 /*
@@ -217,28 +233,32 @@ void NRF24L01_SetOutputPower(int deviceNum, uint8_t level){
     NRF24L01_WriteReg(deviceNum, W_REGISTER(RF_SETUP), 0b00001001 | (level << 1));
 }
 
-void NRF24L01_IRQ(int deviceNum){
-    uint8_t status = NRF24L01_IssueCommand(deviceNum, NOP);
-    if(status & 0b01000000){ /* RX_DR */
-        /*
-         *   write 1 to TX_DS
-         *   release lock
-         */
-    }else if(status & 0b00100000){ /* TX_DS */
-        /*
-         *   check length
-         *   send receive command
-         */
-    }else if(status & 0b00010000){ /* MAX_RT */
-        /* not been consider at this time */
+static void NRF24L01_IRQ_Task(){
+    while(1){
+        int deviceNum;
+        xQueueReceive(pendingIRQQueue, &deviceNum, portMAX_DELAY);
+        uint8_t status = NRF24L01_IssueCommand(deviceNum, NOP);
+        if(status & 0b01000000){ /* RX_DR */
+            uint8_t buf[32], size;
+            NRF24L01_ReadReg(deviceNum, R_REGISTER(RX_PW_P0), &size);
+            NRF24L01_ReadBuf(deviceNum, R_RX_PAYLOAD, buf, size);
+            for(uint8_t i = 0;i < size;++i){
+                xQueueSendToBack(recvQueue, &buf[i], portMAX_DELAY);
+            }
+        }else if(status & 0b00100000){ /* TX_DS */
+            /* not been consider at this time */
+        }else if(status & 0b00010000){ /* MAX_RT */
+            /* not been consider at this time */
+        }
     }
 }
 
-void NRF24L01_SPI_IRQ(int deviceNum){
-    /*
-     * TODO:
-     *  Push data to queue
-     */
+void NRF24L01_IRQ(int deviceNum){
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xQueueSendToBackFromISR(pendingIRQQueue, &deviceNum, &xHigherPriorityTaskWoken);
+    if(xHigherPriorityTaskWoken){
+        taskYIELD();
+    }
 }
 
 /*
@@ -248,7 +268,7 @@ void NRF24L01_TransmitPacket(int deviceNum, uint8_t buf[], uint32_t size){
     uint8_t fifo_status;
     while(1){
         /*
-         * XXX: can use STATUS register with NRF24L01_IssueCommand
+         * TODO: can use STATUS register with NRF24L01_IssueCommand
          */
         NRF24L01_ReadReg(deviceNum, R_REGISTER(FIFO_STATUS), &fifo_status);
         if(FIFO_STATUS & 0b00100000){ // TX FIFO full, busy waiting
@@ -275,7 +295,7 @@ void NRF24L01_Transmit(int deviceNum, uint8_t buf[], uint32_t size){
 }
 
 void NRF24L01_Receive(int deviceNum, uint8_t buf[], uint32_t size){
-    /*
-     * TODO: receive from queue
-     */
+    while(size--){
+        xQueueReceive(recvQueue, buf++, portMAX_DELAY);
+    }
 }
