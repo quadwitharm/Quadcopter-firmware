@@ -15,8 +15,6 @@ void SPI_sendRecv(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length);
 void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length);
 void SPI_sendRecv_POLL(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length);
 
-void StartSPIRXInterrupt();
-
 #ifdef __cplusplus
 }
 #endif

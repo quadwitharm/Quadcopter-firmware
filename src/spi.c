@@ -30,6 +30,7 @@
 //[0] -> spi1 ,[1] -> spi2
 SPI_HandleTypeDef SpiHandle[2];
 volatile xSemaphoreHandle _spi_sem[2];
+xQueueHandle rxQueue[2];
 
 
 bool SPI_init(void){
@@ -99,9 +100,6 @@ void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 
 void SPI_sendRecv_POLL(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 
-
-}
-void StartSPIRXInterrupt(){
 
 }
 
