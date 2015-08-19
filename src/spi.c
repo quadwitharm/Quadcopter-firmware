@@ -27,11 +27,11 @@
 #define SPIx_IRQn                        SPI4_IRQn
 #define SPIx_IRQHandler                  SPI4_IRQHandler
 
+#define TIMEOUT 10000
+
 //channels : [0] -> tx ,[1] -> rx
 SPI_HandleTypeDef SpiHandle[2];
 volatile xSemaphoreHandle _spi_sem[2];
-xQueueHandle rxQueue[2];
-
 
 bool SPI_init(void){
 /*    
@@ -91,16 +91,16 @@ bool SPI_init(void){
 void SPI_sendRecv(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 
 	if(!schestart){
-		HAL_SPI_TransmitReceive(SpiHandle[nspi],txData,
-				rxData,length);
+		HAL_SPI_TransmitReceive(&SpiHandle[nspi],txData,
+				rxData,length,TIMEOUT);
 	}else{
 		SPI_sendRecv_IT(nspi,txData,rxData,length);
 	}
 }
 
 void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
-
-
+	HAL_SPI_TransmitReceive_IT(&SpiHandle[nspi],txData,rxData,length);
+	while (!xSemaphoreTake(_spi_sem[nspi], portMAX_DELAY));
 }
 
 
