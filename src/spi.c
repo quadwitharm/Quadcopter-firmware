@@ -29,6 +29,7 @@
 
 //[0] -> spi1 ,[1] -> spi2
 SPI_HandleTypeDef SpiHandle[2];
+volatile xSemaphoreHandle _spi_sem[2];
 
 
 bool SPI_init(void){
@@ -79,23 +80,11 @@ bool SPI_init(void){
 		}
 	};
 
+	_spi_sem[0] = xSemaphoreCreateBinary();
+	_spi_sem[1] = xSemaphoreCreateBinary();
 
 	return (HAL_SPI_Init(&SpiHandle[0]) == HAL_OK) &&
 		(HAL_SPI_Init(&SpiHandle[1]) == HAL_OK);
-}
-
-void SPI_send(int nspi,uint8_t* data, uint16_t length){
-    /*
-     * Use polling mode if FreeRTOS hasn't startup yet,
-     * otherwise else interrupt mode
-     */
-}
-
-void SPI_recv(int nspi,uint8_t* data, uint16_t length){
-    /*
-     * Use polling mode if FreeRTOS hasn't startup yet,
-     * otherwise else interrupt mode
-     */
 }
 
 void SPI_sendRecv(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
@@ -103,24 +92,8 @@ void SPI_sendRecv(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 
 }
 
-void SPI_send_IT(int nspi,uint8_t* data, uint16_t length){
-
-}
-
-void SPI_recv_IT(int nspi,uint8_t* buffer, uint16_t length){
-
-}
-
 void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 
-
-}
-
-void SPI_send_POLL(int nspi,uint8_t* data, uint16_t length){
-
-}
-
-void SPI_recv_POLL(int nspi,uint8_t* buffer, uint16_t length){
 
 }
 
