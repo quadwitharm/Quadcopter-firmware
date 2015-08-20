@@ -11,18 +11,8 @@ volatile xSemaphoreHandle _spi_sem[2];
 volatile xSemaphoreHandle _spi_mux[2];
 
 bool SPI_init(void){
-/*    
-     *  + SCK:  PB3
-     *  + MISO: PB4
-     *  + MOSI: PB5
-     *
-     * SPI2:
-     *  + SCK:  PB13
-     *  + MISO: PB14
-     *  + MOSI: PB15
-     *
-     *  Init according to NRF24L01 specs
-     * */
+    
+	//Init according to NRF24L01 specs     
 
 	SpiHandle[SPI_TX] = (SPI_HandleTypeDef) {
 		.Instance = SPI1,
@@ -78,7 +68,7 @@ void SPI_sendRecv(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 	}
 }
 
-//block at Semaphore
+
 void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 	while (!xSemaphoreTake(_spi_mux[nspi], portMAX_DELAY));
 
@@ -112,9 +102,9 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi){
 	};
 
 	/* SPI1:
-	 *  + SCK:  PB3
-	 *  + MISO: PB4
-	 *  + MOSI: PB5
+	 *  + SCK:  PA5
+	 *  + MISO: PA6
+	 *  + MOSI: PA7
 	 *
 	 * SPI2:
 	 *  + SCK:  PB13
@@ -127,13 +117,13 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi){
 		/* Enable SPI clock */
 		__SPI1_CLK_ENABLE();
 		/* Enable GPIO TX/RX clock */
-		__GPIOB_CLK_ENABLE();
+		__GPIOA_CLK_ENABLE();
 
 		/*##-2- Configure peripheral GPIO ####################################*/
 		/* SPI SCK,MISO,MOSI GPIO pin configuration  */
-		GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
+		GPIO_InitStruct.Pin = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
 		GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
-		HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 		/*##-3- Configure the NVIC for SPI ###################################*/
 		/* NVIC for SPI */
