@@ -53,6 +53,9 @@ bool SPI_init(void){
 	_spi_mux[SPI_TX] = xSemaphoreCreateMutex();
 	_spi_mux[SPI_RX] = xSemaphoreCreateMutex();
 
+	//initial take state for blocking
+	xSemaphoreTake(_spi_sem[SPI_TX],(TickType_t) 0);
+	xSemaphoreTake(_spi_sem[SPI_RX],(TickType_t) 0);
 
 	return (HAL_SPI_Init(&SpiHandle[SPI_TX]) == HAL_OK) &&
 		(HAL_SPI_Init(&SpiHandle[SPI_RX]) == HAL_OK);
