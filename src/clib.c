@@ -52,3 +52,13 @@ int kprintf(const char *format, ...){
     va_end(args);
     return ret;
 }
+
+void delay_ncycle(uint32_t cycle){
+    volatile register uint32_t counter = cycle / 3;
+    __asm__ volatile (
+        ".Loop:\n"
+        "subs   %0, %0, #1\n"
+        "ble    .Loop\n"
+        : "=r"(counter) ::
+    );
+}

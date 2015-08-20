@@ -2,6 +2,7 @@
 
 #include "semphr.h"
 #include "spi.h"
+#include "gpio.h"
 #include "queue.h"
 #include "task.h"
 
@@ -52,6 +53,21 @@
 #define RF_CHANNEL_1 100
 #define RF_CHANNEL_2 200
 
+/* GPIO Pin config */
+
+static GPIO_TypeDef *CEPort[] = {
+    [0] = GPIOC, [1] = GPIOD
+};
+static const uint16_t CEPin [] = {
+    [0] = 5, [1] = 10
+};
+static GPIO_TypeDef *CSNPort[] = {
+    [0] = GPIOC, [1] = GPIOD
+};
+static const uint16_t CSNPin [] = {
+    [0] = 4, [1] = 8
+};
+
 static SemaphoreHandle_t transmitSem;
 static QueueHandle_t recvQueue;
 static QueueHandle_t pendingIRQQueue;
@@ -63,6 +79,9 @@ bool NRF24L01_Init(){
 	if(!SPI_init()){
 		return false;
 	}
+    if(!GPIO_Init()){
+        return false;
+    }
     transmitSem = xSemaphoreCreateMutex();
     recvQueue = xQueueCreate(64, 1);
     pendingIRQQueue = xQueueCreate(3, 1);	
@@ -85,13 +104,9 @@ static uint8_t NRF24L01_WriteBuf(int deviceNum, uint8_t cmd, uint8_t *buf, uint3
     outbuf[0] = cmd;
     memcpy(outbuf + 1, buf, size);
 
-    /* XXX: Not completed API
-     * CSN = 0;
-     */
+    HAL_GPIO_WritePin(CSNPort[deviceNum], CSNPin[deviceNum], 0);
     SPI_sendRecv(deviceNum, outbuf, inbuf, size+1 );
-    /*
-     * CSN = 1;
-     */
+    HAL_GPIO_WritePin(CSNPort[deviceNum], CSNPin[deviceNum], 1);
     return inbuf[0]; /* STATUS register */
 }
 
@@ -103,13 +118,9 @@ static uint8_t NRF24L01_ReadBuf(int deviceNum, uint8_t cmd, uint8_t *buf, uint32
     uint8_t outbuf[33];
     outbuf[0] = cmd;
 
-    /* XXX: Not completed API
-     * CSN = 0;
-     */
+    HAL_GPIO_WritePin(CSNPort[deviceNum], CSNPin[deviceNum], 0);
     SPI_sendRecv(deviceNum, outbuf, inbuf, size+1 );
-    /*
-     * CSN = 1;
-     */
+    HAL_GPIO_WritePin(CSNPort[deviceNum], CSNPin[deviceNum], 1);
     memcpy(buf, inbuf, size);
 
     return inbuf[0]; /* STATUS register */
@@ -122,13 +133,9 @@ static uint8_t NRF24L01_IssueCommand(int deviceNum, uint8_t cmd){
     uint8_t inbuf[1];
     uint8_t outbuf[1] = { cmd };
 
-    /* XXX: Not completed API
-     * CSN = 0;
-     */
+    HAL_GPIO_WritePin(CSNPort[deviceNum], CSNPin[deviceNum], 0);
     SPI_sendRecv(deviceNum, outbuf, inbuf, 1 );
-    /*
-     * CSN = 1;
-     */
+    HAL_GPIO_WritePin(CSNPort[deviceNum], CSNPin[deviceNum], 1);
     return inbuf[0];
 }
 
@@ -139,13 +146,9 @@ static uint8_t NRF24L01_WriteReg(int deviceNum, uint8_t cmd, uint8_t value){
     uint8_t inbuf[2];
     uint8_t outbuf[2] = { cmd, value };
 
-    /* XXX: Not completed API
-     * CSN = 0;
-     */
+    HAL_GPIO_WritePin(CSNPort[deviceNum], CSNPin[deviceNum], 0);
     SPI_sendRecv(deviceNum, outbuf, inbuf, 2 );
-    /*
-     * CSN = 1;
-     */
+    HAL_GPIO_WritePin(CSNPort[deviceNum], CSNPin[deviceNum], 1);
     return inbuf[0];
 }
 
@@ -156,13 +159,9 @@ static uint8_t NRF24L01_ReadReg(int deviceNum, uint8_t cmd, uint8_t *val){
     uint8_t inbuf[2];
     uint8_t outbuf[2] = { cmd };
 
-    /* XXX: Not completed API
-     * CSN = 0;
-     */
+    HAL_GPIO_WritePin(CSNPort[deviceNum], CSNPin[deviceNum], 0);
     SPI_sendRecv(deviceNum, outbuf, inbuf, 2 );
-    /*
-     * CSN = 1;
-     */
+    HAL_GPIO_WritePin(CSNPort[deviceNum], CSNPin[deviceNum], 1);
 
     *val = inbuf[1];
     return inbuf[0];
@@ -179,10 +178,14 @@ void NRF24L01_PowerDown(int deviceNum){
 }
 
 void NRF24L01_RXMode(int deviceNum){
-    /* TODO: Set CE = 0 */
+    HAL_GPIO_WritePin(CEPort[deviceNum], CEPin[deviceNum], 0);
+
     /* Reserved | RX_DR | no TX_DS | no MAX_RT | CRC | <-2Byte | PWR_UP | RX */
     NRF24L01_WriteReg(deviceNum, W_REGISTER(CONFIG), 0b00111111);
-    /* TODO: delay for 1.5ms */
+
+    /* delay for 1.5ms */
+    delay_ncycle(270000);
+
     /* Reserved * 3 | no PLL_LOCK | 2MBps | 0 dBm | LNA gain */
     NRF24L01_WriteReg(deviceNum, W_REGISTER(RF_SETUP), 0b00001111);
     /* Channel */
@@ -193,14 +196,22 @@ void NRF24L01_RXMode(int deviceNum){
     NRF24L01_WriteReg(deviceNum, W_REGISTER(EN_AA), 0b00000001);
     /* Enable RX Address*/
     NRF24L01_WriteReg(deviceNum, W_REGISTER(EN_RXADDR), 0b00000001);
-    /* TODO: Set CE = 1 */
+
+    HAL_GPIO_WritePin(CEPort[deviceNum], CEPin[deviceNum], 1);
+
+    /* delay for 130us */
+    delay_ncycle(234);
 }
 
 void NRF24L01_TXMode(int deviceNum){
-    /* TODO: Set CE = 0 */
+    HAL_GPIO_WritePin(CEPort[deviceNum], CEPin[deviceNum], 0);
+
     /* Reserved | no RX_DR | TX_DS | MAX_RT | CRC | <-2Byte | PWR_UP | TX */
     NRF24L01_WriteReg(deviceNum, W_REGISTER(CONFIG), 0b01001110);
-    /* TODO: delay for 1.5ms */
+
+    /* delay for 1.5ms */
+    delay_ncycle(270000);
+
     /* Reserved * 3 | no PLL_LOCK | 2MBps | 0 dBm | LNA gain */
     NRF24L01_WriteReg(deviceNum, W_REGISTER(RF_SETUP), 0b00001111);
     /* Channel */
@@ -209,7 +220,11 @@ void NRF24L01_TXMode(int deviceNum){
     NRF24L01_WriteReg(deviceNum, W_REGISTER(SETUP_RETR), 0b00010011);
     /* Dynamic payload length */
     NRF24L01_WriteReg(deviceNum, W_REGISTER(DYNPD), 0b00000001);
-    /* TODO: Set CE = 1 */
+
+    HAL_GPIO_WritePin(CEPort[deviceNum], CEPin[deviceNum], 1);
+
+    /* delay for 130us */
+    delay_ncycle(234);
 }
 
 /*

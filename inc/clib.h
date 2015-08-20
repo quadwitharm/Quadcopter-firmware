@@ -34,6 +34,7 @@ void * memcpy ( void * destination, const void * source, size_t num );
 size_t strlen ( const char * str );
 int vsnprintf (char * s, size_t n, const char * format, va_list arg );
 
+void delay_ncycle(uint32_t cycle);
 
 #ifdef __cplusplus
 }
