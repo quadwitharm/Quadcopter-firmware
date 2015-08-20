@@ -81,6 +81,15 @@ void SPI_sendRecv_IT(int nspi,uint8_t *txData,uint8_t *rxData, uint16_t length){
 	xSemaphoreGive(_spi_mux[nspi]);
 }
 
+//handlers to call HAL
+void SPI1_IRQHandler(){
+	HAL_SPI_IRQHandler(&SpiHandle[SPI_TX]);
+}
+
+void SPI2_IRQHandler(){
+	HAL_SPI_IRQHandler(&SpiHandle[SPI_RX]);
+}
+
 //called after HAL_SPI_TransmitReceive_IT complete
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
 	static signed portBASE_TYPE xHigherPriorityTaskWoken;
