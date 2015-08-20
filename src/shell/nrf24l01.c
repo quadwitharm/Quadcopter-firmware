@@ -59,10 +59,13 @@ static TaskHandle_t IRQ_TaskHandle;
 
 static void NRF24L01_IRQ_Task();
 
-void NRF24L01_Init(){
+bool NRF24L01_Init(){
+	if(!SPI_init()){
+		return false;
+	}
     transmitSem = xSemaphoreCreateMutex();
     recvQueue = xQueueCreate(64, 1);
-    pendingIRQQueue = xQueueCreate(3, 1);
+    pendingIRQQueue = xQueueCreate(3, 1);	
     xTaskCreate(NRF24L01_IRQ_Task,
                 "NRF IRQ Handling Task",
                 256,
@@ -70,6 +73,7 @@ void NRF24L01_Init(){
                 tskIDLE_PRIORITY + 6,
                 &IRQ_TaskHandle
                 );
+	return true;
 }
 
 /*
