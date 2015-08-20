@@ -283,11 +283,11 @@ void NRF24L01_Transmit(int deviceNum, uint8_t buf[], uint32_t size){
     xSemaphoreTake(transmitSem, portMAX_DELAY);
     while(size > 0){
         if(size > 32){
-            NRF24L01_WriteBuf(deviceNum, W_TX_PAYLOAD, buf, 32);
+            NRF24L01_TransmitPacket(deviceNum, buf, 32);
             size -= 32;
             buf += 32;
         }else{
-            NRF24L01_WriteBuf(deviceNum, W_TX_PAYLOAD, buf, size);
+            NRF24L01_TransmitPacket(deviceNum, buf, size);
             size = 0;
         }
     }
