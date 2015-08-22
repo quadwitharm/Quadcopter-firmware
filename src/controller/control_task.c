@@ -80,6 +80,8 @@ static void ControllerUpdate(){
     sensorData[ROLL_RATE] = lastAngularSpeed.roll;
     sensorData[PITCH_RATE] = lastAngularSpeed.pitch;
     sensorData[YAW_RATE] = lastAngularSpeed.yaw;
+	sensorData[HEIGHT] = xHeight;
+	sensorData[HEIGHT_RATE] /*TODO=*/ ;
     taskEXIT_CRITICAL();
 
 #ifdef USE_RATE_PID

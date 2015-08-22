@@ -11,6 +11,7 @@ struct Angle3D{
 
 extern struct Angle3D xAttitude;
 extern struct Angle3D lastAngularSpeed;
+extern float xHeight;
 
 bool InitSensorPeriph();
 bool InitSensorTask();

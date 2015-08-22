@@ -4,7 +4,7 @@
 #include "clib.h"
 
 enum Axis{ ROLL, PITCH, YAW, ROLL_RATE, PITCH_RATE, YAW_RATE,
-        NUM_AXIS };
+        HEIGHT, HEIGHT_RATE, NUM_AXIS };
 enum RC_IN{ ROLL_C, PITCH_C ,YAW_C ,THR_C ,NUM_RC_IN};
 enum PID_K{ KP, KI, KD, MAX, MIN };
 

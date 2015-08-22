@@ -20,9 +20,13 @@ xTaskHandle recvTaskHandle;
 struct KalmanParameter Kroll;
 struct KalmanParameter Kpitch;
 
+/* Parameter of height calculation */
+float seaLevel_p = 993.8F;
+
 /* Definition of shared resource */
 struct Angle3D xAttitude;
 struct Angle3D lastAngularSpeed;
+float xHeight;
 
 struct Angle3D acceleration;
 
@@ -111,8 +115,12 @@ void Process(){
         HMC5883L.int16.Y,
         HMC5883L.int16.Z,
     };
+
+	float atmospheric_p = (float)BMP180.Pressure / 100.0F;
+	float temp = (float)BMP180.Temperature;
+
     acceleration = accel;
-    lastAngularSpeed = angularSpeed;
+
     //Init_quaternion(acceleration);
     //accel = getAngle();
     //acceleration.yaw = accel.pitch*180/3.141596;
@@ -164,8 +172,15 @@ void Process(){
         -getPitch(x,y,z,gyroEstimateAngle.pitch),
         atan2(compass.roll, compass.pitch)*57.296,
     };
+
     // Conplementary filter
-    xAttitude = ComplementaryFilter(&gyroEstimateAngle,&AccelEstimateAngle);
+    xAttitude = ComplementaryFilter(&gyroEstimateAngle,
+			&AccelEstimateAngle);
+
+	lastAngularSpeed = angularSpeed;
+	//height from sea level
+	xHeight = ((powf((seaLevel_p/atmospheric_p), 0.190223F) - 1.0F)
+			* (temp + 273.15F)) / 0.0065F;
 #endif
 }
 
