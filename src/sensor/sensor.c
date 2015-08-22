@@ -116,8 +116,10 @@ void Process(){
         HMC5883L.int16.Z,
     };
 
+	//pressure in hpa (origially in pa)
 	float atmospheric_p = (float)BMP180.Pressure / 100.0F;
-	float temp = (float)BMP180.Temperature;
+	//temp in C (originally 0.1 C)
+	float temp = (float)BMP180.Temperature / 10.0F;
 
     acceleration = accel;
 
