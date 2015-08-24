@@ -26,4 +26,6 @@ void stablize_pid_init(pid_context_t *roll,
 void rate_pid_init(pid_context_t *roll_r,
     pid_context_t *pitch_r,pid_context_t *yaw_r);
 
+void vertical_pid_init(pid_context_t *height,pid_context_t *rate);
+
 #endif

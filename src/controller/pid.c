@@ -132,3 +132,22 @@ void rate_pid_init(pid_context_t *roll_r,pid_context_t *pitch_r,
     yaw_r->min = MIN_MOUT;
 }
 
+void vertical_pid_init(pid_context_t *height,pid_context_t *rate){
+
+    height->kp = 0.0f;
+    height->ki = 0.0f;
+    height->kd = 0.0f;
+    height->prev_in = 0.0f;
+    height->integral = 0.0f;
+    height->max = MAX_MOUT;
+    height->min = MIN_MOUT;
+
+    rate->kp = 0.0f;
+    rate->ki = 0.0f;
+    rate->kd = 0.0f;
+    rate->prev_in = 0.0f;
+    rate->integral = 0.0f;
+    rate->max = MAX_MOUT;
+    rate->min = MIN_MOUT;
+
+}
