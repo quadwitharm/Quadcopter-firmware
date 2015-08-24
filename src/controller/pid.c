@@ -1,7 +1,6 @@
 #include "controller/pid.h"
 
 //control loop has fixed frequency ,use constant dt for pid
-#define FREQUENCY 60.0f
 #define DT (1.0f/FREQUENCY)
 //angle range for stabilization pid
 #define MAX_ANGLE_RATE 0.25f

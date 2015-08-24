@@ -15,10 +15,13 @@ float mFR,mBL,mFL,mBR;
 float setPoint[NUM_RC_IN] = {};
 bool controllerEnable = true;
 
+
 // #define USE_RATE_PID
 
 #ifdef USE_RATE_PID
 static float yaw_target = 0.0f;
+//TODO : sudden jump prevention
+static float last_height = 0.0f;
 #endif
 
 static xTaskHandle controllerTaskHandle;
@@ -72,6 +75,7 @@ static void Controller_Task(void *args){
 }while(0)
 
 static void ControllerUpdate(){
+
     // Read data
     taskENTER_CRITICAL();
     sensorData[ROLL] = xAttitude.roll;
@@ -81,8 +85,13 @@ static void ControllerUpdate(){
     sensorData[PITCH_RATE] = lastAngularSpeed.pitch;
     sensorData[YAW_RATE] = lastAngularSpeed.yaw;
 	sensorData[HEIGHT] = xHeight;
-	sensorData[HEIGHT_RATE] /*TODO=*/ ;
+#ifdef USE_RATE_PID
+	sensorData[HEIGHT_RATE] = (xHeight - last_height)/ FREQUENCY ;
+	//update last height for rate calc
+	last_height = sensorData[HEIGHT];
+#endif
     taskEXIT_CRITICAL();
+
 
 #ifdef USE_RATE_PID
     // Calculate PIDs
@@ -118,6 +127,7 @@ static void ControllerUpdate(){
 #endif
 
     float throttle = setPoint[THR_C];/*should be radio input*/
+
 
     // Motor output
     //protect mortor by min throttle

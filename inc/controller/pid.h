@@ -3,6 +3,8 @@
 
 #include "clib.h"
 
+#define FREQUENCY 60.0f
+
 typedef struct pid_context_t{
     float kp,ki,kd;
     float prev_in;
