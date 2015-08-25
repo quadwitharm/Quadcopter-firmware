@@ -109,7 +109,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi){
 
 	GPIO_InitTypeDef GPIO_InitStruct = { 
 		.Mode=GPIO_MODE_AF_PP, 
-		.Pull=GPIO_PULLUP,
+		.Pull=GPIO_NOPULL,
 		.Speed=GPIO_SPEED_FAST
 	};
 
@@ -125,19 +125,19 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi){
 	 */ 
 
 	if(hspi->Instance ==SPI1){
-		/*##-1- Enable peripherals and GPIO Clocks ###########################*/
+		/*##-1- Enable peripherals and GPIO Clocks ###################*/
 		/* Enable SPI clock */
 		__SPI1_CLK_ENABLE();
 		/* Enable GPIO TX/RX clock */
 		__GPIOA_CLK_ENABLE();
 
-		/*##-2- Configure peripheral GPIO ####################################*/
+		/*##-2- Configure peripheral GPIO ############################*/
 		/* SPI SCK,MISO,MOSI GPIO pin configuration  */
 		GPIO_InitStruct.Pin = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
 		GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
 		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-		/*##-3- Configure the NVIC for SPI ###################################*/
+		/*##-3- Configure the NVIC for SPI ###########################*/
 		/* NVIC for SPI */
 		HAL_NVIC_SetPriority(SPI1_IRQn, 12, 0);
 		HAL_NVIC_EnableIRQ(SPI1_IRQn);
