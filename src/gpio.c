@@ -1,6 +1,8 @@
 #include "gpio.h"
 #include "stm32f4xx_hal_gpio.h"
 
+#include "shell/nrf24l01.h"
+
 bool GPIO_Init(){
     /*
      * NRF-1 pin list
@@ -47,3 +49,12 @@ bool GPIO_Init(){
     HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
     return true;
 }
+
+void EXTI0_IRQHandler(void) {
+    NRF24L01_IRQ(0);
+}
+
+void EXTI9_5_IRQHandler(void) {
+    NRF24L01_IRQ(1);
+}
+

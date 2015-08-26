@@ -1,6 +1,5 @@
 #include "shell/nrf24l01.h"
 
-#include "semphr.h"
 #include "spi.h"
 #include "gpio.h"
 #include "queue.h"
@@ -59,21 +58,20 @@ static GPIO_TypeDef *CEPort[] = {
     [0] = GPIOC, [1] = GPIOD
 };
 static const uint16_t CEPin [] = {
-    [0] = 5, [1] = 10
+    [0] = GPIO_PIN_5, [1] = GPIO_PIN_10
 };
 static GPIO_TypeDef *CSNPort[] = {
     [0] = GPIOC, [1] = GPIOD
 };
 static const uint16_t CSNPin [] = {
-    [0] = 4, [1] = 8
+    [0] = GPIO_PIN_4, [1] = GPIO_PIN_8
 };
 
-static SemaphoreHandle_t transmitSem;
 static QueueHandle_t recvQueue;
 static QueueHandle_t pendingIRQQueue;
 static TaskHandle_t IRQ_TaskHandle;
 
-static void NRF24L01_IRQ_Task();
+static void NRF24L01_IRQ_Task(void *args);
 
 bool NRF24L01_Init(){
 	if(!SPI_init()){
@@ -82,7 +80,6 @@ bool NRF24L01_Init(){
     if(!GPIO_Init()){
         return false;
     }
-    transmitSem = xSemaphoreCreateMutex();
     recvQueue = xQueueCreate(64, 1);
     pendingIRQQueue = xQueueCreate(3, 1);	
     xTaskCreate(NRF24L01_IRQ_Task,
@@ -92,6 +89,8 @@ bool NRF24L01_Init(){
                 tskIDLE_PRIORITY + 6,
                 &IRQ_TaskHandle
                 );
+    NRF24L01_TXMode(0);
+    NRF24L01_RXMode(1);
 	return true;
 }
 
@@ -252,7 +251,7 @@ void NRF24L01_SetOutputPower(int deviceNum, uint8_t level){
     NRF24L01_WriteReg(deviceNum, W_REGISTER(RF_SETUP), 0b00001001 | (level << 1));
 }
 
-static void NRF24L01_IRQ_Task(){
+static void NRF24L01_IRQ_Task(void *args){
     while(1){
         int deviceNum;
         xQueueReceive(pendingIRQQueue, &deviceNum, portMAX_DELAY);
@@ -285,21 +284,20 @@ void NRF24L01_IRQ(int deviceNum){
  */
 void NRF24L01_TransmitPacket(int deviceNum, uint8_t buf[], uint32_t size){
     uint8_t fifo_status;
-    while(1){
-        /*
-         * TODO: can use STATUS register with NRF24L01_IssueCommand
-         */
-        NRF24L01_ReadReg(deviceNum, R_REGISTER(FIFO_STATUS), &fifo_status);
-        if(FIFO_STATUS & 0b00100000){ // TX FIFO full, busy waiting
-            continue;
-        }
-
-    }
+//    while(1){
+//        /*
+//         * TODO: can use STATUS register with NRF24L01_IssueCommand
+//         */
+//        NRF24L01_ReadReg(deviceNum, R_REGISTER(FIFO_STATUS), &fifo_status);
+//        if(FIFO_STATUS & 0b00100000){ // TX FIFO full, busy waiting
+//            continue;
+//        }
+//
+//    }
     NRF24L01_WriteBuf(deviceNum, W_TX_PAYLOAD, buf, size);
 }
 
 void NRF24L01_Transmit(int deviceNum, uint8_t buf[], uint32_t size){
-    xSemaphoreTake(transmitSem, portMAX_DELAY);
     while(size > 0){
         if(size > 32){
             NRF24L01_TransmitPacket(deviceNum, buf, 32);
@@ -310,7 +308,6 @@ void NRF24L01_Transmit(int deviceNum, uint8_t buf[], uint32_t size){
             size = 0;
         }
     }
-    xSemaphoreGive(transmitSem);
 }
 
 void NRF24L01_Receive(int deviceNum, uint8_t buf[], uint32_t size){

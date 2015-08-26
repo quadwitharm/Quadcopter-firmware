@@ -13,7 +13,6 @@ void NRF24L01_TXMode(int deviceNum);
 void NRF24L01_SetFrequency(int deviceNum, uint8_t channel);
 void NRF24L01_SetOutputPower(int deviceNum, uint8_t level);
 void NRF24L01_IRQ(int deviceNum);
-void NRF24L01_SPI_IRQ(int deviceNum);
 void NRF24L01_Transmit(int deviceNum, uint8_t buf[], uint32_t size);
 void NRF24L01_Receive(int deviceNum, uint8_t buf[], uint32_t size);
 
