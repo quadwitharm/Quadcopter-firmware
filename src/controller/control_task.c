@@ -16,14 +16,10 @@ float setPoint[NUM_RC_IN] = {};
 bool controllerEnable = true;
 
 
-// #define USE_RATE_PID
-
-#ifdef USE_RATE_PID
 static float yaw_target = 0.0f;
 static float vert_target = 0.0f;
 //TODO : sudden jump prevention
 static float last_height = 0.0f;
-#endif
 
 static xTaskHandle controllerTaskHandle;
 
@@ -87,39 +83,31 @@ static void ControllerUpdate(){
     sensorData[PITCH_RATE] = lastAngularSpeed.pitch;
     sensorData[YAW_RATE] = lastAngularSpeed.yaw;
 	sensorData[HEIGHT] = xHeight;
-#ifdef USE_RATE_PID
 	sensorData[HEIGHT_RATE] = (xHeight - last_height)/ FREQUENCY ;
-	//update last height for rate calc
+	// update last height for rate calc
 	last_height = sensorData[HEIGHT];
-#endif
     taskEXIT_CRITICAL();
 
 
-#ifdef USE_RATE_PID
-    // Calculate PIDs
+    //Calculate PIDs
+	// Roll
     float roll_stab = runPID(&pids[ROLL],
 			setPoint[ROLL_C], sensorData[ROLL]);
     float roll_out = runPID(&pids[ROLL_RATE],
 			roll_stab, sensorData[ROLL_RATE]);
 
+	// Pitch
     float pitch_stab = runPID(&pids[PITCH],
 			setPoint[PITCH_C], sensorData[PITCH]);
     float pitch_out = runPID(&pids[PITCH_RATE],
 			pitch_stab, sensorData[PITCH_RATE]);
-#else
-    float roll_out = runPID(&pids[ROLL],
-			setPoint[ROLL_C], sensorData[ROLL]);
-    float pitch_out = runPID(&pids[PITCH],
-			setPoint[PITCH_C], sensorData[PITCH]);
-#endif
 
+	// Yaw
     float yaw_out = 0.0f;
-#ifdef USE_RATE_PID
     float yaw_stab;
     if(setPoint[YAW_C] > 0.5f && setPoint[YAW_C] < -0.5f){
         //rate mode
         //setPoint = rate -> to rate pid
-
         passPID(&pids[YAW],yaw_target,sensorData[YAW]);
         yaw_out = runPID(&pids[YAW_RATE],
 				setPoint[YAW_C], sensorData[YAW_RATE]);
@@ -127,18 +115,14 @@ static void ControllerUpdate(){
     }else{
         //stabilized mode
         //setPoint = angle = 0.0
-
         yaw_stab = runPID_warp(&pids[YAW],
 				yaw_target, sensorData[YAW], 180.0f, -180.0f);
         yaw_out = runPID(&pids[YAW_RATE],
 				yaw_stab, sensorData[YAW_RATE]);
     }
-#else
-    yaw_out = runPID_warp(&pids[YAW],
-			setPoint[YAW_C], sensorData[YAW],180.0f,-180.0f);
-#endif
 
-#ifdef USE_RATE_PID
+
+	// Vertical
     float vert_stab;
     if(setPoint[THR_C] > 0.5f && setPoint[THR_C] < -0.5f){
         //rate mode
@@ -153,20 +137,18 @@ static void ControllerUpdate(){
         throttle = runPID(&pids[HEIGHT_RATE],
 				vert_stab, sensorData[HEIGHT_RATE]);
     }
-#else
-    float throttle = setPoint[THR_C];/*should be radio input*/
-#endif
+
 
     // Motor output
-    //protect mortor by min throttle
+    // protect mortor by min throttle
     if(throttle > 0.05){
         mFR = throttle - roll_out - pitch_out + yaw_out;
         mFL = throttle + roll_out - pitch_out - yaw_out;
         mBR = throttle - roll_out + pitch_out - yaw_out;
         mBL = throttle + roll_out + pitch_out + yaw_out;
 
-       // scale output
-        SCALE(mFR,0,1);
+		// scale output
+		SCALE(mFR,0,1);
         SCALE(mFL,0,1);
         SCALE(mBR,0,1);
         SCALE(mBL,0,1);
